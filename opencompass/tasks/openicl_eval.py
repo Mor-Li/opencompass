@@ -22,6 +22,37 @@ from opencompass.utils import (build_dataset_from_cfg, dataset_abbr_from_cfg,
                                task_abbr_from_cfg)
 
 
+def extract_role_pred(s: str, begin_str: Optional[str],
+                      end_str: Optional[str]) -> str:
+    """Extract the role prediction from the full prediction string. The role
+    prediction may be the substring between the begin and end string.
+
+    Args:
+        s (str): Full prediction string.
+        begin_str (str): The beginning string of the role
+        end_str (str): The ending string of the role.
+
+    Returns:
+        str: The extracted role prediction.
+    """
+    start = 0
+    end = len(s)
+
+    if begin_str:
+        begin_idx = s.find(begin_str)
+        if begin_idx != -1:
+            start = begin_idx + len(begin_str)
+
+    if end_str:
+        # TODO: Support calling tokenizer for the accurate eos token
+        # and avoid such hardcode
+        end_idx = s.find(end_str, start)
+        if end_idx != -1:
+            end = end_idx
+
+    return s[start:end]
+
+
 @TASKS.register_module(force=(__name__ == '__main__'))  # A hack for script run
 class OpenICLEvalTask(BaseTask):
     """OpenICL Evaluation Task.
@@ -137,14 +168,14 @@ class OpenICLEvalTask(BaseTask):
                         'must be list.')
                 if pred_list_flag:
                     pred_strs = [[
-                        self._extract_role_pred(_pred, role.get('begin', None),
-                                                role.get('end', None))
+                        extract_role_pred(_pred, role.get('begin', None),
+                                          role.get('end', None))
                         for _pred in pred
                     ] for pred in pred_strs]
                 else:
                     pred_strs = [
-                        self._extract_role_pred(pred, role.get('begin', None),
-                                                role.get('end', None))
+                        extract_role_pred(pred, role.get('begin', None),
+                                          role.get('end', None))
                         for pred in pred_strs
                     ]
 
@@ -185,8 +216,8 @@ class OpenICLEvalTask(BaseTask):
             result = icl_evaluator.score(**preds)
 
             if self.dump_details:
+                details = result.get('details', None)
                 try:
-                    details = result.pop('details', None)
                     result['details'] = self.format_details(
                         pred_strs, test_set[self.output_column], details,
                         pred_dicts)
@@ -194,13 +225,10 @@ class OpenICLEvalTask(BaseTask):
 
                     if 'PPL' in str(
                             self.dataset_cfg.infer_cfg.inferencer.type):
-                        result['correct_bpb'], result[
-                            'incorrect_bpb'] = self.calculate_bpb(pred_dicts)
-                    else:
-                        result['incorrect_bpb'] = result['correct_bpb'] = -1
+                        result['correct_bpb'], result['incorrect_bpb'] = \
+                            self.calculate_bpb(pred_dicts)
                 except Exception as e:
                     self.logger.warning(f'Skip dumping details due to: {e}.')
-                    result['incorrect_bpb'] = result['correct_bpb'] = -1
             else:
                 result.pop('details', None)
 
@@ -221,36 +249,6 @@ class OpenICLEvalTask(BaseTask):
                                          osp.join(self.work_dir, 'results'))
         mkdir_or_exist(osp.split(out_path)[0])
         mmengine.dump(result, out_path, ensure_ascii=False, indent=4)
-
-    def _extract_role_pred(self, s: str, begin_str: Optional[str],
-                           end_str: Optional[str]) -> str:
-        """Extract the role prediction from the full prediction string. The
-        role prediction may be the substring between the begin and end string.
-
-        Args:
-            s (str): Full prediction string.
-            begin_str (str): The beginning string of the role
-            end_str (str): The ending string of the role.
-
-        Returns:
-            str: The extracted role prediction.
-        """
-        start = 0
-        end = len(s)
-
-        if begin_str:
-            begin_idx = s.find(begin_str)
-            if begin_idx != -1:
-                start = begin_idx + len(begin_str)
-
-        if end_str:
-            # TODO: Support calling tokenizer for the accurate eos token
-            # and avoid such hardcode
-            end_idx = s.find(end_str, start)
-            if end_idx != -1:
-                end = end_idx
-
-        return s[start:end]
 
     def format_details(self, predictions, references, details, pred_dicts):
         """This function is responsible for formatting prediction details.
