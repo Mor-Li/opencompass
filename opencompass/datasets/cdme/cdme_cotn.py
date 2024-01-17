@@ -25,22 +25,55 @@ class CDMEDataset(BaseDataset):
         length_buffer: int,
         guide: bool,
         language: str,
-        needle: str,
+        needles: list[str],
+        diff: int,
         retrieval_question: str,
+        answer: str,
+        keyword: str,
     ):
         data = {'prompt': [], 'answer': []}
         tokenizer = tiktoken.encoding_for_model(tokenizer_model)
 
-        def _generate_context(tokens_context, depth_percent, needle):
-            tokens_needle = _get_tokens_from_context(needle)
-            insertion_point = int(len(tokens_context) * (depth_percent / 100))
-            tokens_context = (tokens_context[:insertion_point] +
-                              tokens_needle + tokens_context[insertion_point:])
+        def _generate_context(tokens_context, depth_percent, needles):
+            tokens_needle = [_get_tokens_from_context(needle) for needle
+                             in needles]
+            insertion_points = []
+            total_length = len(tokens_context)
+
+            for i, needle_tokens in enumerate(tokens_needle):
+                if i == 0:
+                    # 第一根针的插入位置
+                    insertion_point = int(total_length * (depth_percent / 100))
+                else:
+                    # 后续针的插入位置
+                    insertion_point = int(insertion_points[i - 1] +
+                                          len(tokens_needle[i - 1]) +
+                                          total_length * (diff / 100))
+
+                # 确保插入点不超出范围
+                insertion_point = min(insertion_point, total_length + 
+                                      sum(len(tn) for tn in tokens_needle[:i]))
+                insertion_points.append(insertion_point)
+
+            for i, needle_tokens in enumerate(tokens_needle):
+                # 插入每根针
+                tokens_context = tokens_context[:insertion_points[i]] \
+                    + needle_tokens + tokens_context[insertion_points[i]:]
+                # 更新后续插入点的位置
+                for j in range(i + 1, len(insertion_points)):
+                    insertion_points[j] += len(needle_tokens)
+
             new_context = _decode_tokens(tokens_context)
             return new_context
 
         def _get_tokens_from_context(context):
-            return tokenizer.encode(context)
+            # 检查是否为列表
+            if isinstance(context, list):
+                # 如果是列表，对每个字符串元素单独进行 tokenize，并将结果作为独立列表添加到外层列表
+                return [tokenizer.encode(item) for item in context]
+            else:
+                # 如果不是列表，直接对单个字符串进行 tokenize，并将结果放在一个列表中
+                return tokenizer.encode(context)
 
         def _decode_tokens(tokens):
             return tokenizer.decode(tokens)
@@ -71,7 +104,7 @@ class CDMEDataset(BaseDataset):
                           '请保持你的回答简洁清楚。不要说和下面文档中的无关的话'
                           '，或重复你的回答\n'
                           f'用户现在给你的文档是{context}\n\n'
-                          f'现在请问：{retrieval_question}\n')
+                          f'现在请问：{retrieval_question}')
             elif language == 'English':
                 prompt = ('You are an intelligent AI assistant skilled in '
                           'answering user questions.\n'
@@ -98,8 +131,9 @@ class CDMEDataset(BaseDataset):
                 random.shuffle(lines)
 
                 context_length = length - length_buffer
-                target_length_per_record = context_length - len(
-                    _get_tokens_from_context(needle))
+                target_length_per_record = context_length - \
+                    sum(len(tokens) for tokens
+                        in _get_tokens_from_context(needles))
 
                 accumulated_tokens = []
                 for line in lines:
@@ -112,13 +146,13 @@ class CDMEDataset(BaseDataset):
 
                 processed_text = _generate_context(
                     accumulated_tokens[:target_length_per_record], depth,
-                    needle)
+                    needles)
 
                 processed_prompt = _generate_prompt(processed_text,
                                                     retrieval_question)
 
                 data['prompt'].append(processed_prompt)
-                data['answer'].append(needle)
+                data['answer'].append(answer+"*"+keyword)
 
         dataset = Dataset.from_dict({
             'prompt': data['prompt'],
@@ -157,20 +191,21 @@ class CDMEEvaluator(BaseEvaluator):
         total_score = 0
         details = []
         for prediction, reference in zip(predictions, references):
+            keyword = reference.split("*")[1]
+            reference = reference.split("*")[0]
             prediction = re.sub(r'\s+', '', prediction)
             reference = re.sub(r'\s+', '', reference)
-            
-            # 计算 reference 长度的 1.2 倍
-            max_length = int(len(reference) * 1.2)
-
-            # 如果 prediction 长度超过了 max_length，则截断它
-            if len(prediction) > max_length:
-                prediction = prediction[:max_length]
-
             edit_distance = self.levenshtein_distance(prediction, reference)
             max_len = max(len(prediction), len(reference))
             score = 100 * (1 -
                            edit_distance / max_len) if max_len != 0 else 100
+
+            if keyword in prediction:
+                print(f"{keyword} is in {prediction}")
+                score = 100
+            else:
+                print(f"{keyword} is not in {prediction}")
+                score = 0.2 * score
 
             detail = {
                 'pred': prediction,
