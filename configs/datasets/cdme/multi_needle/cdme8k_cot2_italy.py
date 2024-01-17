@@ -1,10 +1,10 @@
 from opencompass.openicl.icl_prompt_template import PromptTemplate
 from opencompass.openicl.icl_retriever import ZeroRetriever
 from opencompass.openicl.icl_inferencer import GenInferencer
-from opencompass.datasets.cdme.cdme_cotn import CDMEDataset
-from opencompass.datasets.cdme.cdme_cotn import CDMEEvaluator
-from opencompass.datasets.cdme.cdme_cotn import cdme_postprocess
-from opencompass.datasets.cdme.cdme_cotn import cdme_dataset_postprocess
+from opencompass.datasets.cdme.cdme_multi import CDMEDataset
+from opencompass.datasets.cdme.cdme_multi import CDMEEvaluator
+from opencompass.datasets.cdme.cdme_multi import cdme_postprocess
+from opencompass.datasets.cdme.cdme_multi import cdme_dataset_postprocess
 import math
 
 
