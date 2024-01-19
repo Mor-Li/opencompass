@@ -129,11 +129,13 @@ class CDMEDataset(BaseDataset):
 
 class CDMEEvaluator(BaseEvaluator):
 
+    def __init__(self, use_trim=False):
+        self.use_trim = use_trim
+
     @staticmethod
     def _trim_prediction(prediction, reference):
-        """
-        Trims the prediction string based on the length
-        of the reference string.
+        """Trims the prediction string based on the length of the reference
+        string.
 
         Args:
             prediction (str): The prediction string.
@@ -183,9 +185,9 @@ class CDMEEvaluator(BaseEvaluator):
             prediction = re.sub(r'\s+', '', prediction)
             reference = re.sub(r'\s+', '', reference)
 
-            if use_trim:
-                prediction = CDMEEvaluator.trim_prediction(prediction,
-                                                           reference)
+            if self.use_trim:
+                prediction = CDMEEvaluator._trim_prediction(
+                    prediction, reference)
 
             edit_distance = self.levenshtein_distance(prediction, reference)
             max_len = max(len(prediction), len(reference))
