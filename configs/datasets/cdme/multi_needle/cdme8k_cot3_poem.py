@@ -36,9 +36,15 @@ cdme_reader_cfg = dict(input_columns=['prompt'], output_column='answer')
 cdme_infer_cfg = dict(
     prompt_template=dict(
         type=PromptTemplate,
-        template='''{prompt}'''),
+        template=dict(
+            round=[
+                dict(role='HUMAN', prompt='{prompt}'),
+                dict(role='BOT', prompt='{answer}\n'),
+            ]
+        )
+        ),
     retriever=dict(type=ZeroRetriever),
-    inferencer=dict(type=GenInferencer, max_out_len=512))
+    inferencer=dict(type=GenInferencer))
 
 cdme_eval_cfg = dict(
     evaluator=dict(type=CDMEEvaluator),
@@ -46,7 +52,7 @@ cdme_eval_cfg = dict(
     dataset_postprocessor=dict(type=cdme_dataset_postprocess),
     pred_role='BOT')
 
-context_lengths = list(range(1000, 11000, 1000))
+context_lengths = list(range(1000, 9000, 1000))
 document_depth_percent_intervals = 20
 document_depth_percent_interval_type = "linear"
 

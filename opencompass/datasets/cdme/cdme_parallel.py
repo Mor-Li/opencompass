@@ -1,6 +1,5 @@
 import json
 import random
-import re
 from pathlib import Path
 
 import tiktoken
@@ -9,40 +8,32 @@ from datasets import Dataset
 from opencompass.datasets.base import BaseDataset
 from opencompass.openicl import BaseEvaluator
 from opencompass.registry import LOAD_DATASET, TEXT_POSTPROCESSORS
-import random
-import json
 
 
-def get_unique_entries(file_path, n, language, unique_arg1=False, 
+def get_unique_entries(file_path, n, language, unique_arg1=False,
                        unique_arg2=False, unique_combination=False):
     seen_arg1 = set()
     seen_arg2 = set()
     seen_combinations = set()
     results = []
 
-    # 读取文件并shuffle
     with open(file_path, 'r', encoding='utf-8') as file:
         lines = file.readlines()
     random.shuffle(lines)
 
-    # 遍历shuffle后的数据
     for line in lines:
-        # 尝试解析JSON
         try:
             entry = json.loads(line.strip())
         except json.JSONDecodeError:
             continue
 
-        # 检查语言是否匹配
         if entry.get('language') != language:
             continue
 
-        # 构建唯一性检查的键
         key1 = entry.get('arg1', '') if unique_arg1 else ''
         key2 = entry.get('arg2', '') if unique_arg2 else ''
         combination = (key1, key2) if unique_combination else ''
-
-        # 检查是否已存在
+        
         if (key1 not in seen_arg1 or not unique_arg1) and \
            (key2 not in seen_arg2 or not unique_arg2) and \
            (combination not in seen_combinations or not unique_combination):
@@ -50,8 +41,7 @@ def get_unique_entries(file_path, n, language, unique_arg1=False,
             seen_arg2.add(key2)
             seen_combinations.add(combination)
             results.append(entry)
-
-        # 如果达到了所需的数量，则中断循环
+            
         if len(results) == n:
             break
 
@@ -88,7 +78,6 @@ class CDMEDataset(BaseDataset):
                                                     unique_arg1=True,
                                                     unique_arg2=True,
                                                     unique_combination=True)
-
 
         def _generate_context(tokens_context, depths, needles):
             insertion_points = [int(len(tokens_context) * (depth / 100)) 
@@ -144,7 +133,7 @@ class CDMEDataset(BaseDataset):
                           '请保持你的回答简洁清楚。不要说和下面文档中的无关的话'
                           '，或重复你的回答\n请先仔细阅读下面的文档再依次回答'
                           f'最后提出的问题\n用户现在给你的文档是{context}\n\n'
-                          f'现在请问：{retrieval_question}')
+                          f'现在请问：{retrieval_question}\n')
             elif language == 'English':
                 prompt = ('You are an intelligent AI assistant skilled in '
                           'answering user questions.\n'
@@ -152,7 +141,7 @@ class CDMEDataset(BaseDataset):
                           ' talk about irrelevant topics or repeat your '
                           'answers.\n'
                           f'The document given to you by the user is {context}'
-                          f'\n\nNow, the question is: {retrieval_question}')
+                          f'\n\nNow, the question is: {retrieval_question}\n')
             else:
                 raise ValueError(f"Language '{language}' is not supported.")
 
@@ -250,7 +239,7 @@ class CDMEEvaluator(BaseEvaluator):
         details = []
         depths = [int(i) for i in gold[0].split("#")[1].split("*")]
         scores_by_depth = {depth: 0 for depth in depths}
-        
+
         for prediction, reference in zip(predictions, gold):
             print(reference)
             keywords = reference.split("#")[0].split("*")
@@ -260,7 +249,7 @@ class CDMEEvaluator(BaseEvaluator):
                 if keyword in prediction:
                     print(f"{keyword} at depth {depth} is in {prediction}")
                     scores_by_depth[depth] += 100/(len(predictions))
-                    
+     
         flattened_scores = {'Depth' + str(depth): score for depth, score
                             in scores_by_depth.items()}
 

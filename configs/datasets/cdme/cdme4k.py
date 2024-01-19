@@ -33,26 +33,18 @@ def generate_depth_percents(intervals, interval_type):
 
 cdme_reader_cfg = dict(input_columns=['prompt'], output_column='answer')
 
-# cdme_infer_cfg = dict(
-#     prompt_template=dict(
-#         type=PromptTemplate,
-#         template=dict(
-#             round=[
-#                 dict(role='HUMAN', prompt='Q: {prompt}'),
-#                 dict(role='BOT', prompt='A: {answer}\n'),
-#             ]
-#         )
-#         ),
-#     retriever=dict(type=ZeroRetriever),
-#     inferencer=dict(type=GenInferencer, max_out_len=512))
-
 cdme_infer_cfg = dict(
     prompt_template=dict(
         type=PromptTemplate,
-        template='''{prompt}'''),
+        template=dict(
+            round=[
+                dict(role='HUMAN', prompt='{prompt}'),
+                dict(role='BOT', prompt='{answer}\n'),
+            ]
+        )
+        ),
     retriever=dict(type=ZeroRetriever),
-    inferencer=dict(type=GenInferencer, max_out_len=512))
-
+    inferencer=dict(type=GenInferencer))
 
 cdme_eval_cfg = dict(
     evaluator=dict(type=CDMEEvaluator),
@@ -60,7 +52,7 @@ cdme_eval_cfg = dict(
     dataset_postprocessor=dict(type=cdme_dataset_postprocess),
     pred_role='BOT')
 
-context_lengths = [96000, 112000, 128000, 144000, 160000, 176000, 192000]
+context_lengths = list(range(1000, 5000, 1000))
 document_depth_percent_intervals = 20
 document_depth_percent_interval_type = "linear"
 
@@ -81,7 +73,7 @@ for original_context_length in context_lengths:
             'depth': int(depth_percent),
             'tokenizer_model': 'gpt-4',
             'file_list': file_list,
-            'num_repeats_per_file': 5,
+            'num_repeats_per_file': 10,
             'length_buffer': 200,
             'guide': True,
             'language': 'Chinese',

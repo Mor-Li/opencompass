@@ -71,7 +71,7 @@ class CDMEDataset(BaseDataset):
                           '请保持你的回答简洁清楚。不要说和下面文档中的无关的话'
                           '，或重复你的回答\n'
                           f'用户现在给你的文档是{context}\n\n'
-                          f'现在请问：{retrieval_question}\n')
+                          f'现在请问：{retrieval_question}')
             elif language == 'English':
                 prompt = ('You are an intelligent AI assistant skilled in '
                           'answering user questions.\n'
@@ -129,6 +129,30 @@ class CDMEDataset(BaseDataset):
 
 class CDMEEvaluator(BaseEvaluator):
 
+    @staticmethod
+    def _trim_prediction(prediction, reference):
+        """
+        Trims the prediction string based on the length
+        of the reference string.
+
+        Args:
+            prediction (str): The prediction string.
+            reference (str): The reference string.
+
+        Returns:
+            str: The trimmed prediction string.
+        """
+        l08 = int(0.8 * len(reference))
+        l12 = int(1.2 * len(reference))
+        trimmed_prediction = prediction[:l12]
+
+        if len(trimmed_prediction) > l08 and \
+                reference[-1] in trimmed_prediction[l08:]:
+            end_pos = l08 + trimmed_prediction[l08:].index(reference[-1]) + 1
+            trimmed_prediction = trimmed_prediction[:end_pos]
+
+        return trimmed_prediction
+
     def levenshtein_distance(self, s1, s2):
         if len(s1) < len(s2):
             return self.levenshtein_distance(s2, s1)
@@ -148,29 +172,25 @@ class CDMEEvaluator(BaseEvaluator):
 
         return previous_row[-1]
 
-    def score(self, predictions, references):
+    def score(self, predictions, references, use_trim=False):
         if len(predictions) != len(references):
-            return {
-                'error': 'predictions and references have different lengths'
-            }
+            return {'error': 'predictions and references '
+                    'have different lengths'}
 
         total_score = 0
         details = []
         for prediction, reference in zip(predictions, references):
             prediction = re.sub(r'\s+', '', prediction)
             reference = re.sub(r'\s+', '', reference)
-            
-            # 计算 reference 长度的 1.2 倍
-            max_length = int(len(reference) * 1.2)
 
-            # 如果 prediction 长度超过了 max_length，则截断它
-            if len(prediction) > max_length:
-                prediction = prediction[:max_length]
+            if use_trim:
+                prediction = CDMEEvaluator.trim_prediction(prediction,
+                                                           reference)
 
             edit_distance = self.levenshtein_distance(prediction, reference)
             max_len = max(len(prediction), len(reference))
-            score = 100 * (1 -
-                           edit_distance / max_len) if max_len != 0 else 100
+            score = 100 * (1 - edit_distance / max_len) if max_len != 0 \
+                else 100
 
             detail = {
                 'pred': prediction,

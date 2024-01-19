@@ -36,9 +36,15 @@ cdme_reader_cfg = dict(input_columns=['prompt'], output_column='answer')
 cdme_infer_cfg = dict(
     prompt_template=dict(
         type=PromptTemplate,
-        template='''{prompt}'''),
+        template=dict(
+            round=[
+                dict(role='HUMAN', prompt='{prompt}'),
+                dict(role='BOT', prompt='{answer}\n'),
+            ]
+        )
+        ),
     retriever=dict(type=ZeroRetriever),
-    inferencer=dict(type=GenInferencer, max_out_len=512))
+    inferencer=dict(type=GenInferencer))
 
 cdme_eval_cfg = dict(
     evaluator=dict(type=CDMEEvaluator),
@@ -52,7 +58,7 @@ document_depth_percent_interval_type = "linear"
 
 base_path = './data/CDME'
 file_list = ['zh_finance.jsonl']
-cdme_datasets = []
+cdme8k_cot2_italy_datasets = []
 
 needles = ['\n意大利的佛罗伦萨有一家名为"La Giostra"的餐馆，是整个佛罗伦萨中排行第一的餐馆。\n',
            '"La Giostra"餐馆的特色菜肴是松露奶酪通心粉。']
@@ -61,7 +67,7 @@ retrieval_question = ("佛罗伦萨中排行第一的餐馆的特色菜肴是？
 answer = "佛罗伦萨中排行第一的餐馆的特色菜肴是松露奶酪通心粉。"
 
 keyword = "松露奶酪通心粉"
-diff = 25
+diff = 10
 
 for original_context_length in context_lengths:
     for depth_percent in generate_depth_percents(
@@ -89,4 +95,4 @@ for original_context_length in context_lengths:
             'infer_cfg': cdme_infer_cfg,
             'eval_cfg': cdme_eval_cfg
         }
-        cdme_datasets.append(dataset_dict)
+        cdme8k_cot2_italy_datasets.append(dataset_dict)

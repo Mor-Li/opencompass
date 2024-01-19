@@ -33,13 +33,6 @@ def generate_depth_percents(intervals, interval_type):
 
 cdme_reader_cfg = dict(input_columns=['prompt'], output_column='answer')
 
-# cdme_infer_cfg = dict(
-#     prompt_template=dict(
-#         type=PromptTemplate,
-#         template='''{prompt}'''),
-#     retriever=dict(type=ZeroRetriever),
-#     inferencer=dict(type=GenInferencer, max_out_len=512))
-
 cdme_infer_cfg = dict(
     prompt_template=dict(
         type=PromptTemplate,
@@ -59,13 +52,13 @@ cdme_eval_cfg = dict(
     dataset_postprocessor=dict(type=cdme_dataset_postprocess),
     pred_role='BOT')
 
-context_lengths = list(range(1000, 9000, 1000))
+context_lengths = list(range(1000, 5000, 1000))
 document_depth_percent_intervals = 20
 document_depth_percent_interval_type = "linear"
 
 base_path = './data/CDME'
 file_list = ['zh_finance.jsonl']
-cdme8k_parallel_datasets = []
+cdme4k_parallel_datasets = []
 
 needle_file_name = 'predefined_examples.jsonl'
 
@@ -81,7 +74,7 @@ for original_context_length in context_lengths:
             document_depth_percent_interval_type)],
         'tokenizer_model': 'gpt-4',
         'file_list': file_list,
-        'num_repeats_per_file': 25,
+        'num_repeats_per_file': 10,
         'length_buffer': 200,
         'guide': True,
         'language': 'Chinese',
@@ -89,4 +82,4 @@ for original_context_length in context_lengths:
         'infer_cfg': cdme_infer_cfg,
         'eval_cfg': cdme_eval_cfg
     }
-    cdme8k_parallel_datasets.append(dataset_dict)
+    cdme4k_parallel_datasets.append(dataset_dict)
