@@ -277,7 +277,8 @@ class NeedleBenchParallelEvaluator(BaseEvaluator):
             for depth, score in scores_by_depth.items()
         }
 
-        result = {**flattened_scores,
-                  'details': details,
-                  'average_score': average_score}
+        result = {
+            **flattened_scores, 'details': details,
+            'average_score': average_score
+        }
         return result
