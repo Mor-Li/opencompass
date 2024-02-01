@@ -1,24 +1,23 @@
 # flake8: noqa
 # yapf: disable
+import argparse
 import functools
 import getpass
 import math
+import os
 import os.path as osp
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-import pandas as pd
-import numpy as np
-import mmengine
-import tabulate
-from mmengine import ConfigDict
-import argparse
-import os
+
 import matplotlib.pyplot as plt
+import mmengine
+import numpy as np
 import pandas as pd
 import seaborn as sns
+import tabulate
 from matplotlib.colors import LinearSegmentedColormap
+from mmengine import ConfigDict
 from tqdm import tqdm
-import numpy as np
 
 from opencompass.utils import (LarkReporter, dataset_abbr_from_cfg,
                                get_infer_output_path, get_logger,
@@ -45,7 +44,7 @@ def read_after_specific_line_except_last(file_name, keyword, offset):
             break
     else:
         # 如果文件中没有找到关键字，则返回空字符串
-        return ""
+        return ''
 
     # 返回从指定行开始到倒数第二行的内容
     return ''.join(lines[start_index:-1])
@@ -53,7 +52,7 @@ def read_after_specific_line_except_last(file_name, keyword, offset):
 def create_model_dataframe(nested_dict, model_name, dataset_abbr, parallel=False):
     # 确保模型名存在于字典中
     if model_name not in nested_dict:
-        print(f"Model {model_name} not found in the provided data.")
+        print(f'Model {model_name} not found in the provided data.')
         return pd.DataFrame()  # 返回一个空的DataFrame
 
     model_data = nested_dict[model_name]
@@ -64,8 +63,8 @@ def create_model_dataframe(nested_dict, model_name, dataset_abbr, parallel=False
             if dataset_abbr in key:
                 new_key_base = key.replace(dataset_abbr, '').strip('_')
                 for depth_key, score in value.items():
-                    new_key = f"{new_key_base}{depth_key}"
-                    if "average_score" not in new_key:
+                    new_key = f'{new_key_base}{depth_key}'
+                    if 'average_score' not in new_key:
                         data.append([new_key, score])
         else:
             if dataset_abbr in key:
@@ -187,7 +186,7 @@ def visualize(df_raw, save_path: str,model_name: str ,dataset_type:str):
         plt.subplots_adjust(right=1)
         plt.draw()
         plt.savefig(save_path)
-        print(f"Saved :{save_path}")
+        print(f'Saved :{save_path}')
         plt.close()  # Close figure to prevent memory leaks
     return overall_score
 
@@ -199,57 +198,57 @@ def save_results_to_plots(txt_results_save_path):
     model_names = get_dict_model_names(parsed_data)
     # 定义数字、语言代码和尺寸
     numbers = [2, 3, 4, 5]
-    languages = ["en", "zh"]
+    languages = ['en', 'zh']
     size_exists = []
-    sizes_origin = ["_4k", "_8k", "_32k", "_128k", "_200k"]
+    sizes_origin = ['_4k', '_8k', '_32k', '_128k', '_200k']
 
     for size in sizes_origin:
         if size in content:
             size_exists.append(size)
 
     # 创建dataset_abbrs列表
-    multi_dataset_abbrs = [f"{num}needle_{lang}{size}" for num in numbers for lang in languages for size in size_exists]
-    origin_dataset_abbrs = [f"origin_{lang}{size}" for lang in languages for size in size_exists]
+    multi_dataset_abbrs = [f'{num}needle_{lang}{size}' for num in numbers for lang in languages for size in size_exists]
+    origin_dataset_abbrs = [f'origin_{lang}{size}' for lang in languages for size in size_exists]
     # 创建parallel_dataset_abbrs列表
-    parallel_dataset_abbrs = [f"parallel_{lang}{size}" for lang in languages for size in size_exists] 
+    parallel_dataset_abbrs = [f'parallel_{lang}{size}' for lang in languages for size in size_exists]
 
     dataset_abbrs = multi_dataset_abbrs + origin_dataset_abbrs + \
                         parallel_dataset_abbrs
     base_path = os.path.dirname(txt_results_save_path)
-    plot_path = os.path.join(base_path, "plots")
+    plot_path = os.path.join(base_path, 'plots')
     model_scores = {}
     for model_name in tqdm(model_names):
         model_datasets_scores = {}  # Dictionary to store scores for each dataset for the current model
         for dataset_abbr in dataset_abbrs:
-            parallel_flag = "parallel" in dataset_abbr
+            parallel_flag = 'parallel' in dataset_abbr
 
             # Create a directory for each dataset_abbr
             folder_path = os.path.join(plot_path, dataset_abbr)
             ensure_directory(folder_path)
 
             # Construct the full path to save the image
-            save_path = os.path.join(folder_path, f"{model_name}.png")
-            
+            save_path = os.path.join(folder_path, f'{model_name}.png')
+
             # Create DataFrame for the model and dataset
             df = create_model_dataframe(parsed_data, model_name, dataset_abbr, parallel=parallel_flag)
-            
+
             # Generate visualization and get the score
             score = visualize(df, save_path, model_name, dataset_abbr)
-            
+
             # Store the score in the dictionary
             model_datasets_scores[dataset_abbr] = '{:.02f}'.format(score)
 
         # Process and visualize the overall score
-        overall_score_pic_path = os.path.join(plot_path, f"{model_name}_overall.png")
+        overall_score_pic_path = os.path.join(plot_path, f'{model_name}_overall.png')
         merged_df = merge_dataframes(model_name, dataset_abbrs, parsed_data)
         averaged_df = calculate_elementwise_average(merged_df)
 
         # Assume visualize returns the average score for the overall visualization
-        overall_score = visualize(averaged_df, overall_score_pic_path, "weighted_average_score", "Overall Score")
-        
+        overall_score = visualize(averaged_df, overall_score_pic_path, 'weighted_average_score', 'Overall Score')
+
         # Add the overall score to the dictionary
         model_datasets_scores['Overall'] = '{:.02f}'.format(overall_score)
-        
+
         # Add the model's scores to the main dictionary
         model_scores[model_name] = model_datasets_scores
 
@@ -266,17 +265,17 @@ def get_dict_model_names(nested_dict):
 def merge_dataframes(model_name, dataset_abbrs, parsed_data):
     dfs = []
     for dataset_abbr in dataset_abbrs:
-        parallel_flag = "parallel" in dataset_abbr
+        parallel_flag = 'parallel' in dataset_abbr
         df = create_model_dataframe(parsed_data, model_name, dataset_abbr, parallel=parallel_flag)
-        
+
         # 检查DataFrame是否为空或是否有多于一列（除了'dataset'列）
         if not df.empty and len(df.columns) > 1:
             # 将模型名称列重命名为dataset_abbr
             score_column = df.columns[-1]  # 假设分数列是最后一列
             df.rename(columns={score_column: dataset_abbr}, inplace=True)
-        
+
         dfs.append(df)
-    
+
     # 沿着列方向合并DataFrame
     merged_df = pd.concat(dfs, axis=1)
     return merged_df
@@ -284,11 +283,11 @@ def merge_dataframes(model_name, dataset_abbrs, parsed_data):
 def calculate_elementwise_average(merged_df):
     # 选择需要计算平均值的列
     score_columns = [col for col in merged_df.columns if col != 'dataset']
-    
+
     origin_columns = [col for col in score_columns if 'origin' in col]
     parallel_columns = [col for col in score_columns if 'parallel' in col]
     multi_columns = [col for col in score_columns if 'needle'  in col]
-    
+
     # 计算加权平均分数
     if origin_columns and parallel_columns and multi_columns:
         origin_avg = merged_df[origin_columns].mean(axis=1) * 0.4
@@ -299,7 +298,7 @@ def calculate_elementwise_average(merged_df):
     else:
         # 如果没有任何得分列nn
         merged_df['weighted_average_score'] = pd.Series([0] * len(merged_df))
-    
+
     return merged_df.iloc[:, [0, -1]]
 
 
@@ -543,7 +542,7 @@ class NeedleBenchSummarizer:
                 continue
             if len(dataset_metrics[dataset_abbr]) >= 10:
                 metric = 'average_score'
-                
+
             if metric is None:
                 metric = dataset_metrics[dataset_abbr][0]
             elif metric in dataset_metrics[dataset_abbr]:
@@ -565,7 +564,7 @@ class NeedleBenchSummarizer:
                 table[i] = [table[i][0]] + table[i][4:]
             else:
                 table[i] = [table[i][0]] + table[i][4:]
-        
+
         return table
 
     def _format_raw_txt(self, raw_results):
@@ -587,7 +586,7 @@ class NeedleBenchSummarizer:
     def _read_and_sort_dataframe(self, file_path):
         # Read the file without treating the first row as a header
         df = pd.read_csv(file_path, header=None)
-        
+
         # Function to sort columns based on the value of a specific row, excluding the first column
         def sort_columns_based_on_row_corrected(df, base_row_idx, start_row_idx, end_row_idx):
             # Extract the rows for sorting
@@ -646,7 +645,7 @@ class NeedleBenchSummarizer:
         df_sorted = self._read_and_sort_dataframe(output_csv_path)
 
         # 导出排序后的DataFrame为CSV文件
-        sorted_file_path = osp.abspath(output_csv_path).split('.')[0] + "_sorted.csv"  # 指定输出文件的路径
+        sorted_file_path = osp.abspath(output_csv_path).split('.')[0] + '_sorted.csv'  # 指定输出文件的路径
         df_sorted.to_csv(sorted_file_path, index=False, header=False)
 
         self.logger.info(f'write sorted csv to {sorted_file_path}')
@@ -659,7 +658,7 @@ class NeedleBenchSummarizer:
 
         # pick up results
         raw_results, parsed_results, dataset_metrics, dataset_eval_mode = self._pick_up_results()
-        
+
         # calculate group metrics
         raw_results, parsed_results, dataset_metrics, dataset_eval_mode = \
             self._calculate_group_metrics(raw_results, parsed_results, dataset_metrics, dataset_eval_mode)
