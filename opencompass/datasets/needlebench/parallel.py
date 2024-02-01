@@ -270,10 +270,14 @@ class NeedleBenchParallelEvaluator(BaseEvaluator):
                     print(f'{keyword} at depth {depth} is in {prediction}')
                     scores_by_depth[depth] += 100 / (len(predictions))
 
+        average_score = sum(scores_by_depth.values()) / len(scores_by_depth)
+
         flattened_scores = {
             'Depth' + str(depth): score
             for depth, score in scores_by_depth.items()
         }
 
-        result = {**flattened_scores, 'details': details}
+        result = {**flattened_scores,
+                  'details': details,
+                  'average_score': average_score}
         return result

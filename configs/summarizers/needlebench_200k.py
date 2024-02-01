@@ -1,3 +1,4 @@
+from opencompass.summarizers.needlebench import NeedleBenchSummarizer
 context_lengths_200k = list([16000, 32000, 48000, 64000, 80000, 96000, 112000, 128000, 144000, 160000, 176000, 192000, 200000])
 depths = [0, 5, 10, 15, 21, 26, 31, 36, 42, 47, 52, 57, 63, 68, 73, 78, 84, 89, 94, 100]
 
@@ -44,50 +45,62 @@ for original_context_length in context_lengths_200k:
 _needlebench_200k_parallel = _needlebench_200k_parallel_en + _needlebench_200k_parallel_zh
 
 needlebench_summary_groups = [
-    {'name': 'needlebench_200k_original_version', 'subsets': _needlebench_200k_origin},
-    {'name': 'needlebench_200k_original_version_zh', 'subsets': _needlebench_200k_origin_zh},
-    {'name': 'needlebench_200k_original_version_en', 'subsets': _needlebench_200k_origin_en},
+    {'name': 'original_version', 'subsets': _needlebench_200k_origin},
+    {'name': 'original_version_zh', 'subsets': _needlebench_200k_origin_zh},
+    {'name': 'original_version_en', 'subsets': _needlebench_200k_origin_en},
 
-    {'name': 'needlebench_200k_multi_needle_en', 'subsets': _needlebench_200k_multi_needle_en},
-    {'name': 'needlebench_200k_multi_needle2_en', 'subsets': _needlebench_200k_2needle_en},
-    {'name': 'needlebench_200k_multi_needle3_en', 'subsets': _needlebench_200k_3needle_en},
-    {'name': 'needlebench_200k_multi_needle4_en', 'subsets': _needlebench_200k_4needle_en},
-    {'name': 'needlebench_200k_multi_needle5_en', 'subsets': _needlebench_200k_5needle_en},
+    {'name': 'multi_needle_en', 'subsets': _needlebench_200k_multi_needle_en},
+    {'name': 'multi_needle2_en', 'subsets': _needlebench_200k_2needle_en},
+    {'name': 'multi_needle3_en', 'subsets': _needlebench_200k_3needle_en},
+    {'name': 'multi_needle4_en', 'subsets': _needlebench_200k_4needle_en},
+    {'name': 'multi_needle5_en', 'subsets': _needlebench_200k_5needle_en},
 
-    {'name': 'needlebench_200k_multi_needle_zh', 'subsets': _needlebench_200k_multi_needle_zh},
-    {'name': 'needlebench_200k_multi_needle2_zh', 'subsets': _needlebench_200k_2needle_zh},
-    {'name': 'needlebench_200k_multi_needle3_zh', 'subsets': _needlebench_200k_3needle_zh},
-    {'name': 'needlebench_200k_multi_needle4_zh', 'subsets': _needlebench_200k_4needle_zh},
-    {'name': 'needlebench_200k_multi_needle5_zh', 'subsets': _needlebench_200k_5needle_zh},
+    {'name': 'multi_needle_zh', 'subsets': _needlebench_200k_multi_needle_zh},
+    {'name': 'multi_needle2_zh', 'subsets': _needlebench_200k_2needle_zh},
+    {'name': 'multi_needle3_zh', 'subsets': _needlebench_200k_3needle_zh},
+    {'name': 'multi_needle4_zh', 'subsets': _needlebench_200k_4needle_zh},
+    {'name': 'multi_needle5_zh', 'subsets': _needlebench_200k_5needle_zh},
 
-    {'name': 'needlebench_200k_multi_needle', 'subsets': _needlebench_200k_multi_needle},
+    {'name': 'multi_needle', 'subsets': _needlebench_200k_multi_needle},
 
-    {'name': 'needlebench_200k_parallel_version', 'subsets': _needlebench_200k_parallel},
-    {'name': 'needlebench_200k_parallel_version_zh', 'subsets': _needlebench_200k_parallel_zh},
-    {'name': 'needlebench_200k_parallel_version_en', 'subsets': _needlebench_200k_parallel_en},
+    {'name': 'parallel_version', 'subsets': _needlebench_200k_parallel},
+    {'name': 'parallel_version_zh', 'subsets': _needlebench_200k_parallel_zh},
+    {'name': 'parallel_version_en', 'subsets': _needlebench_200k_parallel_en},
 
-
-    {'name': 'needlebench_200k', 'subsets': _needlebench_200k_origin + _needlebench_200k_multi_needle_en + _needlebench_200k_parallel},
-
+    {'name': 'overall',
+     'subsets': [['original_version', 'naive_average'],
+                 ['multi_needle', 'naive_average'],
+                 ['parallel_version', 'average_score']],
+     'weights': {'original_version': 0.4,
+                 'multi_needle': 0.3,
+                 'parallel_version': 0.3}},
 ]
 summarizer = dict(
+    type=NeedleBenchSummarizer,
     dataset_abbrs=[
-        'needlebench_200k',
-        'needlebench_200k_parallel_version',
-        'needlebench_200k_parallel_version_zh',
-        'needlebench_200k_parallel_version_en',
-        'needlebench_200k_multi_needle',
-        'needlebench_200k_multi_needle_en',
-        'needlebench_200k_multi_needle_zh',
-        'needlebench_200k_multi_needle2_en',
-        'needlebench_200k_multi_needle3_en',
-        'needlebench_200k_multi_needle4_en',
-        'needlebench_200k_multi_needle5_en',
-        'needlebench_200k_multi_needle2_zh',
-        'needlebench_200k_multi_needle3_zh',
-        'needlebench_200k_multi_needle4_zh',
+        'overall',
+        '--------- NeedleBench-200k Single-Needle ---------',  # category
+        'original_version',
+        'original_version_zh',
+        'original_version_en',
+        '--------- NeedleBench-200k Parallel-Needles ---------',  # category
+        'parallel_version',
+        'parallel_version_zh',
+        'parallel_version_en',
+        '--------- NeedleBench-200k Multi-Needles ---------',  # category
+        'multi_needle',
+        'multi_needle_en',
+        'multi_needle_zh',
+        'multi_needle2_en',
+        'multi_needle3_en',
+        'multi_needle4_en',
+        'multi_needle5_en',
+        'multi_needle2_zh',
+        'multi_needle3_zh',
+        'multi_needle4_zh',
+        'multi_needle5_zh',
 
-        *_needlebench_200k_origin, *_needlebench_200k_multi_needle, *_needlebench_200k_parallel,
+        # *_needlebench_200k_origin, *_needlebench_200k_multi_needle, *_needlebench_200k_parallel,
     ],
     summary_groups=needlebench_summary_groups,
 )
