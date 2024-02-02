@@ -15,13 +15,11 @@ def create_tmux_session(session_name, path, debug, reuse_path):
         'C-m',
         shell=True)
     # subprocess.run(f"tmux send-keys -t {session_name}"
-    # " 'conda activate opencompass_old_lmdeploy' C-m", shell=True)
+    #                " 'conda activate opencompass_old_lmdeploy' C-m",
+    #                shell=True)
 
     debug_flag = '--debug' if debug else ''
     reuse_flag = f'-r {reuse_path}' if reuse_path else ''
-    work_dir = './outputs/needlebench'
-    full_reuse_path = os.path.join(work_dir, reuse_path)
-    ensure_directory_exists(full_reuse_path)
     command = f'python run.py {path} {debug_flag} {reuse_flag}'
     subprocess.run(f"tmux send-keys -t {session_name} '{command}' C-m",
                    shell=True)
