@@ -82,9 +82,6 @@ class NeedleBenchATCDataset(BaseDataset):
             # Splitting the chain_story into a list of fragments
             family_story_fragments = chain_story.split('*')
 
-            # Shuffling the list of fragments
-            random.shuffle(family_story_fragments)
-
             # Joining the shuffled fragments back into a string
             shuffled_story = ''.join(family_story_fragments)
 

@@ -140,13 +140,14 @@ class NeedleBenchParallelDataset(BaseDataset):
                           f'最后提出的问题\n用户现在给你的文档是{context}\n\n'
                           f'现在请问：{retrieval_question}\n')
             elif language == 'English':
-                prompt = ('You are an intelligent AI assistant skilled in '
-                          'answering user questions.\n'
-                          'Please keep your answers concise and clear. Do not'
-                          ' talk about irrelevant topics or repeat your '
-                          'answers.\n'
-                          f'The document given to you by the user is {context}'
-                          f'\n\nNow, the question is: {retrieval_question}\n')
+                prompt = (
+                    'You are an intelligent AI assistant skilled in '
+                    'answering user questions.\n'
+                    'Please keep your answers concise and clear. Do not'
+                    ' talk about irrelevant topics or repeat your '
+                    'answers.\n'
+                    f'The document given to you by the user is {context}'
+                    f'\n\nNow, the questions are: {retrieval_question}\n')
             else:
                 raise ValueError(f"Language '{language}' is not supported.")
 

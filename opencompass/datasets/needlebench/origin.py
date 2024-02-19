@@ -14,13 +14,11 @@ from opencompass.registry import LOAD_DATASET, TEXT_POSTPROCESSORS
 
 def get_random_line_by_language(file_path, language):
     with open(file_path, 'r', encoding='utf-8') as file:
-        # 读取并筛选指定语言的行
         lines = [
             json.loads(line.strip()) for line in file
             if json.loads(line.strip())['language'] == language
         ]
 
-    # 随机选择一行数据
     if lines:
         random_line = random.choice(lines)
         return {
