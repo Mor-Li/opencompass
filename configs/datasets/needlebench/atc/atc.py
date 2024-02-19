@@ -32,7 +32,10 @@ needle_num_list = list(range(2, 100, 3))
 document_depth_percent_intervals = 20
 repeats = 30
 
-needlebench_atc_datasets = []
+needlebench_atc_datasets_zh = []
+needlebench_atc_datasets_en = []
+needlebench_atc_datasets_zh_ordered = []
+needlebench_atc_datasets_en_ordered = []
 
 for num_needles in needle_num_list:
     # ordered English version
@@ -47,7 +50,10 @@ for num_needles in needle_num_list:
         'infer_cfg': needlebench_infer_cfg,
         'eval_cfg': needlebench_eval_cfg
     }
-    needlebench_atc_datasets.append(dataset_dict)
+    needlebench_atc_datasets_en_ordered.append(dataset_dict)
+
+
+for num_needles in needle_num_list:
     # ordered Chinese version
     dataset_dict = {
         'abbr': f'needlebench_atc_challenge'
@@ -60,7 +66,9 @@ for num_needles in needle_num_list:
         'infer_cfg': needlebench_infer_cfg,
         'eval_cfg': needlebench_eval_cfg
     }
-    needlebench_atc_datasets.append(dataset_dict)
+    needlebench_atc_datasets_zh_ordered.append(dataset_dict)
+
+for num_needles in needle_num_list:
     # standard English version
     dataset_dict = {
         'abbr': f'needlebench_atc_challenge'
@@ -73,7 +81,9 @@ for num_needles in needle_num_list:
         'infer_cfg': needlebench_infer_cfg,
         'eval_cfg': needlebench_eval_cfg
     }
-    needlebench_atc_datasets.append(dataset_dict)
+    needlebench_atc_datasets_en.append(dataset_dict)
+
+for num_needles in needle_num_list:
     # standard Chinese version
     dataset_dict = {
         'abbr': f'needlebench_atc_challenge'
@@ -86,4 +96,4 @@ for num_needles in needle_num_list:
         'infer_cfg': needlebench_infer_cfg,
         'eval_cfg': needlebench_eval_cfg
     }
-    needlebench_atc_datasets.append(dataset_dict)
+    needlebench_atc_datasets_zh.append(dataset_dict)
