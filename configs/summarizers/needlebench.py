@@ -1,4 +1,6 @@
 from opencompass.summarizers.needlebench import NeedleBenchSummarizer
+from opencompass.summarizers.needlebench import NeedleBenchATCSummarizer
+
 # ----------NeedleBench-4k-summarizer----------
 context_lengths_4k = list(range(1000, 5000, 1000))
 depths = [0, 5, 10, 15, 21, 26, 31, 36, 42, 47, 52, 57, 63, 68, 73, 78, 84, 89, 94, 100]
@@ -649,4 +651,7 @@ needlebench_8k_batch_depth0_summarizer = dict(
         # *_needlebench_8k_origin, *_needlebench_8k_multi_needle, *_needlebench_8k_parallel,
     ],
     summary_groups=needlebench_summary_groups,
+)
+needlebench_atc_summarizer = dict(
+    type=NeedleBenchATCSummarizer,
 )

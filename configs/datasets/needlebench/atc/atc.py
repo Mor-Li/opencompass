@@ -1,8 +1,8 @@
 from opencompass.openicl.icl_prompt_template import PromptTemplate
 from opencompass.openicl.icl_retriever import ZeroRetriever
 from opencompass.openicl.icl_inferencer import GenInferencer
-from opencompass.datasets.needlebench.atc_ordered import NeedleBenchATCDataset as NeedleBenchATCOrderedDataset
-from opencompass.datasets.needlebench.atc import NeedleBenchATCDataset as NeedleBenchATCDataset
+from opencompass.datasets.needlebench.atc import NeedleBenchATCOrderedDataset
+from opencompass.datasets.needlebench.atc import NeedleBenchATCDataset
 from opencompass.datasets.needlebench.origin import NeedleBenchOriginEvaluator
 from opencompass.datasets.needlebench.origin import needlebench_postprocess
 from opencompass.datasets.needlebench.origin import needlebench_dataset_postprocess
@@ -31,6 +31,7 @@ needlebench_eval_cfg = dict(
 needle_num_list = list(range(2, 100, 3))
 document_depth_percent_intervals = 20
 repeats = 30
+names_path = './data/needlebench/names.json'
 
 needlebench_atc_datasets_zh = []
 needlebench_atc_datasets_en = []
@@ -43,6 +44,7 @@ for num_needles in needle_num_list:
         'abbr': f'needlebench_atc_challenge'
                 f'needle_{num_needles}_en_ordered',
         'type': NeedleBenchATCOrderedDataset,
+        'path': names_path,
         'num_needles': num_needles,
         'language': 'English',
         'repeats': repeats,
@@ -59,6 +61,7 @@ for num_needles in needle_num_list:
         'abbr': f'needlebench_atc_challenge'
                 f'needle_{num_needles}_zh_ordered',
         'type': NeedleBenchATCOrderedDataset,
+        'path': names_path,
         'num_needles': num_needles,
         'language': 'Chinese',
         'repeats': repeats,
@@ -74,6 +77,7 @@ for num_needles in needle_num_list:
         'abbr': f'needlebench_atc_challenge'
                 f'needle_{num_needles}_en',
         'type': NeedleBenchATCDataset,
+        'path': names_path,
         'num_needles': num_needles,
         'language': 'English',
         'repeats': repeats,
@@ -89,6 +93,7 @@ for num_needles in needle_num_list:
         'abbr': f'needlebench_atc_challenge'
                 f'needle_{num_needles}_zh',
         'type': NeedleBenchATCDataset,
+        'path': names_path,
         'num_needles': num_needles,
         'language': 'Chinese',
         'repeats': repeats,
