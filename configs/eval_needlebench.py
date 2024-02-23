@@ -8,12 +8,15 @@ from mmengine.config import read_base
 with read_base():
     # eval needlebench_4k
     from .datasets.needlebench.needlebench_4k.needlebench import needlebench_datasets
+    from .summarizers.needlebench import needlebench_4k_summarizer as summarizer
 
     # only eval original "needle in a haystack test" in needlebench_4k
     # from .datasets.needlebench.needlebench_4k.needlebench_single import needlebench_datasets_zh, needlebench_datasets_en
+    # from .summarizers.needlebench import needlebench_4k_summarizer as summarizer
 
-    from .summarizers.needlebench import needlebench_4k_summarizer as summarizer
-
+    # eval Ancestral Tracing Challenge(ATC)
+    # from .datasets.needlebench.atc.atc import needlebench_atc_datasets_zh, needlebench_atc_datasets_en
+    # from .summarizers.needlebench import needlebench_atc_summarizer as summarizer
 
 datasets = sum([v for k, v in locals().items() if ('datasets' in k)], [])
 
