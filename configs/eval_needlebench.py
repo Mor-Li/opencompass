@@ -1,17 +1,21 @@
 from opencompass.models import HuggingFaceCausalLM
 from opencompass.models.turbomind import TurboMindModel
+from opencompass.runners import SlurmSequentialRunner
+from opencompass.partitioners import SizePartitioner, NaivePartitioner
+from opencompass.tasks import OpenICLInferTask, OpenICLEvalTask
 
 from mmengine.config import read_base
 with read_base():
     # eval needlebench_4k
     from .datasets.needlebench.needlebench_4k.needlebench import needlebench_datasets
-    from .summarizers.needlebench import needlebench_4k_summarizer as summarizer
 
     # only eval original "needle in a haystack test" in needlebench_4k
-    # from .datasets.needlebench.needlebench_4k.needlebench_single import needlebench_datasets_zh, needlebench_datasets_zh
+    # from .datasets.needlebench.needlebench_4k.needlebench_single import needlebench_datasets_zh, needlebench_datasets_en
+
+    from .summarizers.needlebench import needlebench_4k_summarizer as summarizer
 
 
-datasets = [*needlebench_datasets]
+datasets = sum([v for k, v in locals().items() if ('datasets' in k)], [])
 
 hf_internlm2_chat_7b_model_meta_template = dict(
     round=[
@@ -64,6 +68,8 @@ internlm2_chat_7b_200k = dict(
     )
 
 models = [
-    hf_internlm2_chat_7b,
+    # hf_internlm2_chat_7b,
     internlm2_chat_7b_200k,
 ]
+
+work_dir = './outputs/needlebench'
