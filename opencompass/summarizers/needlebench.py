@@ -985,10 +985,10 @@ class NeedleBenchATCSummarizer:
 
         # Function to calculate maximum needles
         def calculate_max_needles(dataset):
-            max_needles = {model: None for model in dataset.columns if model.endswith('-hf')}
+            max_needles = {model: None for model in dataset.columns if 'b' in model}
             for model in max_needles.keys():
                 consecutive_low_scores = 0
-                previous_needle_count = -1
+                previous_needle_count = 0
                 for index, row in dataset.sort_values(by='needle_count').iterrows():
                     try:
                         score = float(row[model])
