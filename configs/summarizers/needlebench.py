@@ -652,6 +652,16 @@ needlebench_8k_batch_depth0_summarizer = dict(
     ],
     summary_groups=needlebench_summary_groups,
 )
+
+needle_num_list = list(range(2, 20, 1))
+
 needlebench_atc_summarizer = dict(
-    type=NeedleBenchATCSummarizer,
+    dataset_abbrs=[
+        '######## Needlebench-ATC Accuracy ########',  # category
+        *[[f'NeedleBenchATCDataset-{num_needles}Needle-ZH', 'acc_1'] for num_needles in needle_num_list],
+        '######## Needlebench-ATC CircularEval ########',  # category
+        *[[f'NeedleBenchATCDataset-{num_needles}Needle-ZH', 'perf_4'] for num_needles in needle_num_list],
+    ],
+    summary_groups=sum(
+        [v for k, v in locals().items() if k.endswith("_summary_groups")], [])
 )

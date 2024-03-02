@@ -102,6 +102,7 @@ class NeedleBenchATCDataset(BaseDataset):
 例子1.如果张强的父亲是马克，除此以外提供的文本中没有更多关于亲属关系的信息，那么在提供的文本中张强能够向上追溯到的最年长的亲人就是马克。
 例子2.如果李明的姥姥是张红，而张红的父亲是张强，除此以外提供的文本中没有更多关于亲属关系的信息，那么在提供的文本中李明能够向上追溯到的最年长的亲人就是张强。
 例子3.如果小明是张红的曾孙女，张红的祖母是王华，王华的父亲是王刚，除此以外提供的文本中没有更多关于亲属关系的信息，那么小明能够向上追溯到的最年长的亲人就是王刚。
+请按照'{last_person}的能够向上追溯到的最年长的亲人就是______。'的格式回答。
 """)
             elif language == 'English':
                 prompt = (f"""
@@ -109,8 +110,9 @@ Given the scrambled family relationships described above, who is the eldest rela
 For example:
 Example 1: If Zhang Qiang's father is Mark, and no further information about familial relationships is provided in the text, then the oldest relative Zhang Qiang can trace back to in the provided text is Mark.
 Example 2: If Li Ming's grandmother is Zhang Hong, and Zhang Hong's father is Zhang Qiang, and no further information about familial relationships is provided in the text, then the oldest relative Li Ming can trace back to in the provided text is Zhang Qiang.
-Example 3: If Xiao Ming is Zhang Hong's great-granddaughter, Zhang Hong's grandmother is Wang Hua, and Wang Hua's father is Wang Gang, and no further information about familial relationships is provided in the text, then the oldest relative Xiao Ming can trace back to in the provided text is Wang Gang."""
-                          )
+Example 3: If Xiao Ming is Zhang Hong's great-granddaughter, Zhang Hong's grandmother is Wang Hua, and Wang Hua's father is Wang Gang, and no further information about familial relationships is provided in the text, then the oldest relative Xiao Ming can trace back to in the provided text is Wang Gang.
+Please answer in the format of "The oldest relative that {last_person} can trace back to is ______."
+""")
             else:
                 prompt = 'Language not supported.'
                 raise Exception('Unsupported language specified. '
@@ -215,7 +217,7 @@ class NeedleBenchATCOrderedDataset(BaseDataset):
             # Generating the prompt based on the language
             if language == 'Chinese':
                 prompt = (f"""
-在上面提供的打乱的家族关系文本中，'{last_person}'的能够向上追溯到的最年长的亲人是谁？
+在上面提供的家族关系文本中，'{last_person}'的能够向上追溯到的最年长的亲人是谁？
 例如：
 例子1.如果张强的父亲是马克，除此以外提供的文本中没有更多关于亲属关系的信息，那么在提供的文本中张强能够向上追溯到的最年长的亲人就是马克。
 例子2.如果李明的姥姥是张红，而张红的父亲是张强，除此以外提供的文本中没有更多关于亲属关系的信息，那么在提供的文本中李明能够向上追溯到的最年长的亲人就是张强。
@@ -223,7 +225,7 @@ class NeedleBenchATCOrderedDataset(BaseDataset):
 """)
             elif language == 'English':
                 prompt = (f"""
-Given the scrambled family relationships described above, who is the eldest relative that '{last_person}' can trace back to in the context?
+Given the family relationships described above, who is the eldest relative that '{last_person}' can trace back to in the context?
 For example:
 Example 1: If Zhang Qiang's father is Mark, and no further information about familial relationships is provided in the text, then the oldest relative Zhang Qiang can trace back to in the provided text is Mark.
 Example 2: If Li Ming's grandmother is Zhang Hong, and Zhang Hong's father is Zhang Qiang, and no further information about familial relationships is provided in the text, then the oldest relative Li Ming can trace back to in the provided text is Zhang Qiang.
