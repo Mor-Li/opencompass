@@ -190,6 +190,7 @@ class NeedleBenchParallelDataset(BaseDataset):
                 random.seed(counter)
                 random.shuffle(lines)
                 predefined_needles = predefined_needles_bak.copy()
+                random.seed(counter)
                 random.shuffle(predefined_needles)
 
                 needles = [
