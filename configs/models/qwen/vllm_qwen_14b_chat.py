@@ -12,7 +12,7 @@ models = [
     dict(
         type=VLLM,
         abbr='qwen-14b-chat-vllm',
-        path="Qwen/Qwen-72B-Chat",
+        path="Qwen/Qwen-14B-Chat",
         model_kwargs=dict(tensor_parallel_size=4),
         meta_template=_meta_template,
         max_out_len=100,
