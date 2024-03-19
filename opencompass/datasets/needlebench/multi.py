@@ -144,7 +144,7 @@ class NeedleBenchMultiDataset(BaseDataset):
                               'The document given to you by the user'
                               f' is {context}\n\n')
                 else:
-                    raise ValueError('Unsupported position. '
+                    raise ValueError(f'Unsupported position {position}. '
                                      'Position must be "End" or "Start".')
             else:
                 raise ValueError(f"Language '{language}' is not supported.")
