@@ -4,32 +4,96 @@ import random
 
 import tiktoken
 from datasets import Dataset
+from huggingface_hub import hf_hub_download
 
 from opencompass.datasets.base import BaseDataset
 from opencompass.openicl import BaseEvaluator
 from opencompass.registry import LOAD_DATASET
-from opencompass.utils import get_data_path
 
 
-def get_random_needles(counter, file_path, needle_count):
+def get_random_needles(counter, file_path, num_needles, language):
     with open(file_path, 'r', encoding='utf-8') as file:
-        data = json.load(file)
+        names_data = json.load(file)
 
-    matching_records = [
-        record for record in data
-        if record.get('derivation_count') == needle_count
-    ]
+    all_names = names_data[language].split(',')
 
-    if matching_records:
-        random.seed(counter)
-        random_record = random.choice(matching_records)
-        return {
-            'needles': random_record['derivations'],
-            'answer': random_record['answer'],
-            'retrieval_question': random_record['question']
-        }
+    random.seed(counter)
+    names = random.sample(all_names, num_needles)
+
+    if language == 'Chinese':
+        relationship_terms = [
+            '父亲', '母亲', '爸爸', '妈妈', '爷爷', '奶奶', '姥姥', '姥爷', '外公', '外婆'
+        ]
+
+        relationship_templates = [
+            '{A}是{B}的{relationship}。',
+            '{B}的{relationship}是{A}。',
+            '{A}作为{B}的{relationship}，对{B}的成长有重要影响。',
+            '{A}不仅是{B}的{relationship}，还是{B}的榜样。',
+            '{B}是{A}所生的孩子。',
+            '{A}对{B}来说，不只是一个{relationship}，还是一个朋友。',
+            '{A}在{B}的生命中扮演着{relationship}的角色。',
+            '{B}把{A}视为其{relationship}。',
+        ]
+    elif language == 'English':
+        relationship_terms = [
+            'father', 'mother', 'dad', 'mom', 'grandfather', 'grandmother',
+            'maternal grandmother', 'maternal grandfather',
+            'paternal grandfather', 'paternal grandmother'
+        ]
+
+        relationship_templates = [
+            "{A} is {B}'s {relationship}.",
+            "{B}'s {relationship} is {A}.",
+            ("{A}, as {B}'s {relationship}, "
+             "has a significant impact on {B}'s upbringing."),
+            ("{A} is not only {B}'s {relationship} "
+             "but also {B}'s role model."),
+            '{B} is the child of {A}.',
+            ('For {B}, {A} is not just a {relationship}, '
+             'but also a friend.'),
+            ("{A} plays the role of {B}'s {relationship} "
+             "in {B}'s life."),
+            '{B} considers {A} as their {relationship}.',
+        ]
     else:
-        return None
+        raise ValueError(f"Unsupported language '{language}' specified.")
+
+    def generate_chain_family_story(names, templates, relationship_terms):
+        story = ''
+        for i in range(len(names) - 1):
+            template = random.choice(templates)
+            relation_term = random.choice(relationship_terms)
+            relation = template.format(A=names[i], B=names[i + 1], relationship=relation_term)
+            story += f'{relation}*'
+        return story
+
+    chain_story = generate_chain_family_story(names, relationship_templates, relationship_terms)
+    
+    # Splitting the chain_story into a list of fragments
+    family_story_fragments = chain_story.split('*')
+
+    # Removing the empty string from the list
+    family_story_fragments = [fragment for fragment in family_story_fragments if fragment]
+    
+    # Shuffling the list of fragments
+    random.shuffle(family_story_fragments)
+
+    last_person = names[-1]
+
+    # Generating the retrieval question based on the language
+    if language == 'Chinese':
+        retrieval_question = f"在上面提供的文本中，'{last_person}'的能够向上追溯到的最年长的亲人是谁？"
+    elif language == 'English':
+        retrieval_question = f"Given the context described above, who is the eldest relative that '{last_person}' can trace back to in the context?"
+    
+    # Returning the story, answer, and retrieval question
+    return {
+        'needles': family_story_fragments,
+        'answer': names[0],
+        'retrieval_question': retrieval_question
+    }
+
 
 
 @LOAD_DATASET.register_module()
@@ -37,7 +101,7 @@ class NeedleBenchMultiDataset(BaseDataset):
 
     @staticmethod
     def load(
-        path: str,
+        path: str,  # depreciated
         length: int,
         depth: int,
         tokenizer_model: str,
@@ -152,21 +216,24 @@ class NeedleBenchMultiDataset(BaseDataset):
 
             return prompt
 
+        repo_id = 'opencompass/NeedleBench'
         file_names = [
-            'PaulGrahamEssays.jsonl', 'multi_needle_reasoning_en.json',
-            'multi_needle_reasoning_zh.json', 'zh_finance.jsonl',
+            'PaulGrahamEssays.jsonl','names.json', 'zh_finance.jsonl',
             'zh_game.jsonl', 'zh_general.jsonl', 'zh_government.jsonl',
             'zh_movie.jsonl', 'zh_tech.jsonl'
         ]
-        path = get_data_path(path)
-        if os.environ.get('DATASET_SOURCE') == 'HF':
-            from huggingface_hub import snapshot_download
-            path = snapshot_download(repo_id=path, repo_type='dataset')
-        needle_file_path = os.path.join(path, needle_file_name)
-
+        downloaded_files = []
+        base_file_path = ''
         for file_name in file_names:
-            file_path = os.path.join(path, file_name)
-            if file_name not in file_list:
+            file_path = hf_hub_download(repo_id=repo_id,
+                                        filename=file_name,
+                                        repo_type='dataset')
+            downloaded_files.append(file_path)
+            base_file_path = '/'.join(file_path.split('/')[:-1])
+
+        needle_file_path = os.path.join(base_file_path, needle_file_name)
+        for file_path in downloaded_files:
+            if file_path.split('/')[-1] not in file_list:
                 continue
 
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -176,7 +243,7 @@ class NeedleBenchMultiDataset(BaseDataset):
                 random.seed(counter)
                 random.shuffle(lines)
                 random_needle_data = get_random_needles(
-                    counter, needle_file_path, num_needles)
+                    counter, needle_file_path, num_needles+1, language)
                 needles = [
                     '\n' + needle + '\n'
                     for needle in random_needle_data['needles']
