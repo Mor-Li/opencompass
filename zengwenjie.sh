@@ -1,0 +1,1 @@
+python run.py --dataset  gsm8k_gen  --models lmdeploy_llama3_1_8b_instruct lmdeploy_llama3_8b   --max-num-workers 2 

@@ -4,7 +4,7 @@ models = [
     dict(
         type=TurboMindModel,
         abbr='llama-3-8b-turbomind',
-        path='meta-llama/Meta-Llama-3-8B',
+        path='/fs-computility/llm/shared/llmeval/models/opencompass_hf_hub/models--meta-llama--Meta-Llama-3-8B/snapshots/62bd457b6fe961a42a631306577e622c83876cb6',
         engine_config=dict(session_len=7168, max_batch_size=16, tp=1),
         gen_config=dict(top_k=1, temperature=1e-6, top_p=0.9, max_new_tokens=1024),
         max_seq_len=7168,
