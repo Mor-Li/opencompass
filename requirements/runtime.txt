@@ -7,7 +7,9 @@ evaluate>=0.3.0
 func_timeout
 fuzzywuzzy
 h5py
+huggingface_hub<=0.24.7
 immutabledict
+importlib-metadata
 jieba
 json5
 mmengine-lite
@@ -19,6 +21,7 @@ opencv-python-headless
 pandas<2.0.0
 prettytable
 protobuf
+pyext
 python-Levenshtein
 rank_bm25==0.2.2
 rapidfuzz
