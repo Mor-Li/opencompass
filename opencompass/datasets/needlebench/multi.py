@@ -32,8 +32,8 @@ def get_random_needles(counter, file_path, num_needles, language):
             '{A}不仅是{B}的{relationship}，还是{B}的榜样。',
             '{B}是{A}所生的孩子。',
             '{A}对{B}来说，不只是一个{relationship}，还是一个朋友。',
-            '{A}在{B}的生命中扮演着{relationship}的角色。',
-            '{B}把{A}视为其{relationship}。',
+            '从血缘关系上来看，{A}是{B}的{relationship}。',
+            '{B}知道{A}就是其{relationship}。',
         ]
     elif language == 'English':
         relationship_terms = [
@@ -52,9 +52,8 @@ def get_random_needles(counter, file_path, num_needles, language):
             '{B} is the child of {A}.',
             ('For {B}, {A} is not just a {relationship}, '
              'but also a friend.'),
-            ("{A} plays the role of {B}'s {relationship} "
-             "in {B}'s life."),
-            '{B} considers {A} as their {relationship}.',
+            ("{A} is {B}’s {relationship} by blood."),
+            '{B} knows {A} is their {relationship}.',
         ]
     else:
         raise ValueError(f"Unsupported language '{language}' specified.")
