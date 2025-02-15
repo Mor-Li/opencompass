@@ -4,6 +4,7 @@ import functools
 import getpass
 import math
 import os.path as osp
+from collections import OrderedDict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -99,19 +100,34 @@ class DefaultSubjectiveSummarizer:
                 else:
                     base_models_list = [item['abbr'] for item in base_models]
 
-                for base_model_abbr in base_models_list:
+                for idx, base_model_abbr in enumerate(base_models_list):
                     dataset_abbr = dataset_abbr_from_cfg(dataset)
                     origin_path = get_infer_output_path(model, dataset, osp.join(self.work_dir, 'results'))
+
+                    judger_info = '_judged-by--' + judge_abbr
                     if base_model_abbr != '':
                         temp_path, dataset_json_name = origin_path.rsplit('/', 1)[0], origin_path.rsplit('/', 1)[1]
-                        filepath = osp.join(temp_path.rsplit('/', 1)[0], base_model_abbr + '_' + temp_path.rsplit('/', 1)[1] + '_judged-by--' + judge_abbr, dataset_json_name)
+                        filepath = osp.join(
+                            temp_path.rsplit('/', 1)[0],
+                            base_model_abbr + '_' + temp_path.rsplit('/', 1)[1] + judger_info,
+                            dataset_json_name
+                        )
                     else:
-                        filepath = osp.join(origin_path.rsplit('/', 1)[0] + '_judged-by--' + judge_abbr, origin_path.rsplit('/', 1)[1])
+                        filepath = osp.join(
+                            origin_path.rsplit('/', 1)[0] + judger_info,
+                            origin_path.rsplit('/', 1)[1])
                     if not osp.exists(filepath):
                         continue
                     result = mmengine.load(filepath)
+                    result = OrderedDict(sorted(result.items()))
                     result.pop('details', None)
-                    raw_results[model_abbr][dataset_abbr] = result
+                    if idx == 0:
+                        raw_results[model_abbr][dataset_abbr] = result
+                    else:
+                        for key, value in result.items():
+                            raw_results[model_abbr][dataset_abbr][key] = (raw_results[model_abbr][dataset_abbr][key] * idx + value) / (idx + 1)
+
+
                     if 'error' in result:
                         self.logger.debug(f'error in {model_abbr} {dataset_abbr} {result["error"]}')
                         continue
@@ -132,7 +148,12 @@ class DefaultSubjectiveSummarizer:
                         f'{dataset_abbr} has different metrics: {dataset_metrics[dataset_abbr]} vs {_dm}'
                     else:
                         dataset_metrics[dataset_abbr] = _dm
-                    parsed_results[model_abbr][dataset_abbr] = _rst
+                    if idx == 0:
+                        parsed_results[model_abbr][dataset_abbr] = _rst
+                    else:
+                        for key, value in _rst.items():
+                            parsed_results[model_abbr][dataset_abbr][key] = (parsed_results[model_abbr][dataset_abbr][key] * idx + value) / (idx + 1)
+
 
         # dataset_eval_mode: {dataset_abbr: eval_mode}
         dataset_eval_mode : Dict[str, str] = {}
@@ -323,9 +344,10 @@ class DefaultSubjectiveSummarizer:
             output_csv_path = osp.join(self.work_dir, 'summary', f'summary_{time_str}.csv')
         else:
             output_csv_path = output_path.replace('.txt', '.csv')
-        output_path = output_path.split('.txt')[0] + '_by_' + judge_abbr + '.txt'
 
-        output_csv_path = output_csv_path.split('.csv')[0] + '_by_' + judge_abbr + '.csv'
+        judger_info = '_by_' + judge_abbr
+        output_path = output_path.split('.txt')[0] + judger_info + '.txt'
+        output_csv_path = output_csv_path.split('.csv')[0] + judger_info + '.csv'
 
         output_dir = osp.split(output_path)[0]
         mmengine.mkdir_or_exist(output_dir)

@@ -48,7 +48,7 @@ class VOLCRunner(BaseRunner):
                  retry: int = 2,
                  debug: bool = False,
                  lark_bot_url: str = None,
-                 keep_tmp_file: bool = False):
+                 keep_tmp_file: bool = True):
         super().__init__(task=task, debug=debug, lark_bot_url=lark_bot_url)
         self.volcano_cfg = volcano_cfg
         self.max_num_workers = max_num_workers
@@ -227,20 +227,20 @@ class VOLCRunner(BaseRunner):
                 task_status = os.popen(ask_cmd).read()
                 pattern = r'(?<=\[{"Status":").*(?="}\])'
                 match = re.search(pattern, task_status)
-                if match:
-                    task_status = match.group()
-                else:
-                    task_status = 'Exception'
                 if self.debug:
                     print(task_status)
                 logs = os.popen(log_cmd).read()
                 with open(log_path, 'w', encoding='utf-8') as f:
                     f.write(logs)
-                if task_status in [
-                        'Success', 'Failed', 'Cancelled', 'Exception',
-                        'Killing', 'SuccessHolding', 'FailedHolding'
-                ]:
-                    break
+                if match:
+                    task_status = match.group()
+                    if task_status in [
+                            'Success', 'Failed', 'Cancelled', 'Exception',
+                            'Killing', 'SuccessHolding', 'FailedHolding',
+                            'Killed'
+                    ]:
+                        break
+                # If pattern not found or command failed, sleep and retry
                 time.sleep(poll_interval)
         else:
             task_status = 'Exception'
