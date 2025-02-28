@@ -63,6 +63,8 @@ def first_option_postprocess(text: str, options: str, cushion=True) -> str:
     # yapf: disable
     # flake8: noqa: W605
     patterns = [
+        # QwQ
+        rf'\*\*Final Answer\*\*\s*\n+\s*\\\[ \s*\\boxed\{{\s*([{options}])\s*\}}\s*\\\]',
         f'答案是?\s*([{options}])',
         f'答案是?\s*：\s*([{options}])',
         f'答案是?\s*:\s*([{options}])',
