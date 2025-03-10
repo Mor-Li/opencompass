@@ -317,3 +317,6 @@ def gen_atc_summarizer(needle_num_list):
 atc_summarizer_20 = gen_atc_summarizer(list(range(2, 20, 1)))
 atc_summarizer_50 = gen_atc_summarizer(list(range(2, 50, 1)))
 atc_summarizer_80 = gen_atc_summarizer(list(range(2, 80, 1)))
+atc_summarizer_90_100 = gen_atc_summarizer(list(range(90, 100, 1)))
+atc_summarizer_100_500 = gen_atc_summarizer(list(range(100, 500, 10)))
+atc_summarizer_2_power = gen_atc_summarizer([2, 4, 8, 16, 32, 64, 128, 256, 512])
