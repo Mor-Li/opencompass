@@ -49,6 +49,7 @@ few_shot_prompts = {
 
 # ----------------------- Prompt Settings ----------------------- #
 needle_num_list = list(range(2, 50, 1))
+needle_num_list = [2, 4, 8, 16, 32, 64, 128, 256, 512]
 path = 'opencompass/needlebench'
 file_name = 'names.json'
 repeats = 10
