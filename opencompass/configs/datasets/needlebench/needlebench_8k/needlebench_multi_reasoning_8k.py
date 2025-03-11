@@ -62,7 +62,7 @@ document_depth_percent_interval_type = 'linear'
 base_path = 'opencompass/needlebench'
 file_list = ['PaulGrahamEssays.jsonl']
 
-needle_file_name = 'multi_needle_reasoning_en.json'
+needle_file_name = 'names.json'
 diff = 10
 num_needles = 2
 needlebench_2needle_en_datasets = []
@@ -185,7 +185,7 @@ for original_context_length in context_lengths:
 base_path = 'opencompass/needlebench'
 file_list = ['zh_finance.jsonl']
 
-needle_file_name = 'multi_needle_reasoning_zh.json'
+needle_file_name = 'names.json'
 diff = 10
 num_needles = 2
 needlebench_2needle_zh_datasets = []
