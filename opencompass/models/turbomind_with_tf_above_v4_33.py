@@ -94,6 +94,9 @@ class TurboMindModelwithChatTemplate(BaseModel):
                  do_sample: Optional[bool] = None,
                  temperature: float = 1.0,
                  **kwargs) -> List[str]:
+        # print(f"kwargs: {kwargs}")
+        self.logger.info(f"kwargs: {kwargs}")
+        # raise ValueError("test")
         """Generate results given a list of inputs.
 
         Args:
@@ -195,7 +198,9 @@ class TurboMindModelwithChatTemplate(BaseModel):
                 f'unsupported backend type: {backend}'
 
         if backend == 'turbomind':
+            self.logger.info(f"engine_config: {engine_config}")
             filtered = {k: v for k, v in engine_config.items() if hasattr(TurbomindEngineConfig, k)}
+            self.logger.info(f"filtered: {filtered}")
             backend_config = TurbomindEngineConfig(**filtered)
         else:
             filtered = {k: v for k, v in engine_config.items() if hasattr(PytorchEngineConfig, k)}

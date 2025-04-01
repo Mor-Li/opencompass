@@ -5,31 +5,6 @@ from opencompass.datasets.needlebench.parallel import NeedleBenchParallelDataset
 from opencompass.datasets.needlebench.parallel import NeedleBenchParallelEvaluator
 from opencompass.datasets.needlebench.origin import needlebench_postprocess
 from opencompass.datasets.needlebench.origin import needlebench_dataset_postprocess
-import math
-
-
-def logistic(x, L=100, x0=50, k=0.1):
-    return round(L / (1 + math.exp(-k * (x - x0))), 3)
-
-
-def generate_linear_space(start, end, num):
-    if num == 1:
-        return [start]
-    elif num < 1:
-        raise ValueError('num must be at least 1.')
-    step = (end - start) / (num - 1)
-    return [start + step * i for i in range(num)]
-
-
-def generate_depth_percents(intervals, interval_type):
-    if interval_type == 'linear':
-        return generate_linear_space(0, 100, intervals)
-    elif interval_type == 'sigmoid':
-        linear_space = generate_linear_space(0, 100, intervals)
-        return [logistic(x) for x in linear_space]
-    else:
-        raise ValueError('Unsupported interval type')
-
 
 needlebench_reader_cfg = dict(input_columns=['prompt'], output_column='answer')
 

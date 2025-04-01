@@ -23,9 +23,9 @@ for abbr, path, num_gpus in settings:
             abbr=abbr,
             path=path,
             model_kwargs=dict(tensor_parallel_size=num_gpus),
-            max_out_len=100,
-            max_seq_len=2048,
-            batch_size=32,
+            max_out_len=4096,
+            max_seq_len=140000,
+            batch_size=1,
             generation_kwargs=dict(temperature=0),
             run_cfg=dict(num_gpus=num_gpus, num_procs=1),
         )

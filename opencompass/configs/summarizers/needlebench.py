@@ -121,7 +121,7 @@ def create_summarizer(context_lengths, depths, dataset_size,
 
 
 depths = [0, 5, 10, 15, 21, 26, 31, 36, 42, 47, 52, 57, 63, 68, 73, 78, 84, 89, 94, 100]
-depths_list_sparse = [0, 10, 21, 31, 42, 52, 63, 73, 84, 94, 100]
+depths_list_sparse = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 
 context_lengths_4k = list(range(1000, 5000, 1000))
 needlebench_4k_summarizer = create_summarizer(context_lengths_4k, depths, '4k')
@@ -129,8 +129,12 @@ context_lengths_8k = list(range(5000, 9000, 1000))
 needlebench_8k_summarizer = create_summarizer(context_lengths_8k, depths, '8k')
 context_lengths_32k = [9000, 13000, 17000, 21000, 25000, 29000, 31000, 32000]
 needlebench_32k_summarizer = create_summarizer(context_lengths_32k, depths_list_sparse, '32k')
+context_lengths_1k_to_32k = list([1000, 4000, 8000, 12000, 16000, 20000, 24000, 28000, 32000])
+needlebench_1k_to_32k_summarizer = create_summarizer(context_lengths_1k_to_32k, depths_list_sparse, '1k_to_32k')
 context_lengths_128k = list([16000, 32000, 48000, 64000, 80000, 96000, 112000, 128000])
 needlebench_128k_summarizer = create_summarizer(context_lengths_128k, depths_list_sparse, '128k')
+context_lengths_1k_to_128k = list([1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000])
+needlebench_1k_to_128k_summarizer = create_summarizer(context_lengths_1k_to_128k, depths_list_sparse, '128k')
 context_lengths_200k = list([16000, 48000, 80000, 112000, 128000, 144000, 176000, 200000])
 needlebench_200k_summarizer = create_summarizer(context_lengths_200k, depths_list_sparse, '200k')
 context_lengths_256k = list([32000, 128000, 256000])

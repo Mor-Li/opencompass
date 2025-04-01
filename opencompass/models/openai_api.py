@@ -279,6 +279,7 @@ class OpenAI(BaseAPIModel):
                 if self.proxy_url is None:
                     raw_response = requests.post(url,
                                                  headers=header,
+                                                 verify=False,  # 添加这一行来禁用SSL验证
                                                  data=json.dumps(data))
                 else:
                     proxies = {
@@ -528,7 +529,6 @@ class OpenAI(BaseAPIModel):
 
         return messages, max_out_len
 
-
 class OpenAISDK(OpenAI):
 
     def __init__(
@@ -551,6 +551,8 @@ class OpenAISDK(OpenAI):
         extra_body: Dict | None = None,
         verbose: bool = False,
         status_code_mappings: dict = {},
+        reasoning_effort: str = "medium",
+        max_completion_tokens: int = 8192,
     ):
         super().__init__(
             path,
@@ -579,9 +581,15 @@ class OpenAISDK(OpenAI):
         else:
             self.openai_api_base = openai_api_base
 
+        if isinstance(key, str):
+            if key == 'ENV':
+                if 'OPENAI_API_KEY' not in os.environ:
+                    raise ValueError('OpenAI API key is not set.')
+                self.key = os.getenv('OPENAI_API_KEY')
+
         if self.proxy_url is None:
             self.openai_client = OpenAI(base_url=self.openai_api_base,
-                                        api_key=key)
+                                        api_key=self.key)
         else:
             proxies = {
                 'http://': self.proxy_url,
@@ -590,12 +598,14 @@ class OpenAISDK(OpenAI):
 
             self.openai_client = OpenAI(
                 base_url=self.openai_api_base,
-                api_key=key,
+                api_key=self.key,
                 http_client=httpx.Client(proxies=proxies),
             )
         if self.verbose:
             self.logger.info(f'Used openai_client: {self.openai_client}')
         self.status_code_mappings = status_code_mappings
+        # self.reasoning_effort = reasoning_effort
+        self.max_completion_tokens = max_completion_tokens
 
     def _generate(self,
                   input: PromptList | str,
@@ -646,10 +656,16 @@ class OpenAISDK(OpenAI):
                     messages=messages,
                     extra_body=self.extra_body,
                 )
+            
+            # Add reasoning_effort parameter for o1 and o3 models
+            if any(model_prefix in self.path for model_prefix in O1_MODEL_LIST):
+                # query_data['reasoning_effort'] = self.reasoning_effort
+                query_data['max_completion_tokens'] = self.max_completion_tokens
 
             try:
                 if self.verbose:
                     self.logger.info('Start calling OpenAI API')
+                print(query_data)
                 responses = self.openai_client.chat.completions.create(
                     **query_data, timeout=timeout)  # timeout in seconds
 

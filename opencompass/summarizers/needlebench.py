@@ -67,9 +67,14 @@ model_name_mapping = {
     'claude-3-opus': 'Claude-3-Opus',
     'glm-4-9b-chat-1m-vllm': 'GLM4-9B-Chat-1M',
     'internlm2_5-7b-chat-1m-turbomind': 'InternLM2.5-7B-Chat-1M',
+    'internlm3-8b-instruct-turbomind': 'InternLM3-8B-Instruct',
+    'llama-3.1-8b-instruct-vllm': 'LLaMA-3.1-8B-Instruct',
+    'qwen2.5-7b-instruct-vllm': 'Qwen-2.5-7B-Instruct',
+    'qwen2.5-14b-instruct-vllm': 'Qwen-2.5-14B-Instruct',
+    'qwen2.5-32b-instruct-vllm': 'Qwen-2.5-32B-Instruct',
+    'qwen2_5-72b-instruct-vllm': 'Qwen-2.5-72B-Instruct',
     # Add more mappings as necessary
 }
-
 dataset_mapping_dict = {}
 
 needle_counts = ['2', '3', '4', '5']
