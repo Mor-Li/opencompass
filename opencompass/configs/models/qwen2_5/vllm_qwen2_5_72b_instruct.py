@@ -5,10 +5,17 @@ models = [
         type=VLLMwithChatTemplate,
         abbr='qwen2_5-72b-instruct-vllm',
         path='Qwen/Qwen2.5-72B-Instruct',
-        model_kwargs=dict(tensor_parallel_size=4),
+        model_kwargs=dict(
+            tensor_parallel_size=8,
+            rope_scaling={
+                "factor": 4.0,
+                "original_max_position_embeddings": 32768,
+                "rope_type": "yarn"
+            },
+        ),
         max_out_len=4096,
-        batch_size=16,
+        batch_size=1,
         generation_kwargs=dict(temperature=0),
-        run_cfg=dict(num_gpus=4),
+        run_cfg=dict(num_gpus=8),
     )
 ]
