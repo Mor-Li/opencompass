@@ -57,6 +57,7 @@
 
 ## 🚀 最新进展 <a><img width="35" height="20" src="https://user-images.githubusercontent.com/12782558/212848161-5e783dd6-11e8-4fe0-bbba-39ffb77730be.png"></a>
 
+- **\[2025.03.11\]** 现已支持 `SuperGPQA`  覆盖285 个研究生学科的知识能力评测，欢迎尝试！🔥🔥🔥
 - **\[2025.02.28\]** 我们为 `DeepSeek-R1` 系列模型添加了教程，请查看 [评估推理模型](docs/en/user_guides/deepseek_r1.md) 了解更多详情！🔥🔥🔥
 - **\[2025.02.15\]** 我们新增了两个实用的评测工具：用于LLM作为评判器的`GenericLLMEvaluator`和用于数学推理评估的`MATHEvaluator`。查看[LLM评判器](docs/zh_cn/advanced_guides/llm_judge.md)和[数学能力评测](docs/zh_cn/advanced_guides/general_math.md)文档了解更多详情！🔥🔥🔥
 - **\[2025.01.16\]** 我们现已支持 [InternLM3-8B-Instruct](https://huggingface.co/internlm/internlm3-8b-instruct) 模型，该模型在推理、知识类任务上取得同量级最优性能，欢迎尝试。
@@ -207,9 +208,9 @@ humaneval, triviaqa, commonsenseqa, tydiqa, strategyqa, cmmlu, lambada, piqa, ce
   opencompass --models hf_internlm2_5_1_8b_chat --datasets demo_gsm8k_chat_gen -a lmdeploy
   ```
 
-  OpenCompass 预定义了许多模型和数据集的配置，你可以通过 [工具](./docs/zh_cn/tools.md#ListConfigs) 列出所有可用的模型和数据集配置。
+- ### 支持的模型与数据集
 
-- ### 支持的模型
+  OpenCompass 预定义了许多模型和数据集的配置，你可以通过 [工具](./docs/zh_cn/tools.md#ListConfigs) 列出所有可用的模型和数据集配置。
 
   ```bash
   # 列出所有配置
@@ -218,13 +219,27 @@ humaneval, triviaqa, commonsenseqa, tydiqa, strategyqa, cmmlu, lambada, piqa, ce
   python tools/list_configs.py llama mmlu
   ```
 
-  如果模型不在列表中但支持 Huggingface AutoModel 类，您仍然可以使用 OpenCompass 对其进行评估。欢迎您贡献维护 OpenCompass 支持的模型和数据集列表。
+  #### 支持的模型
+
+  如果模型不在列表中，但支持 Huggingface AutoModel 类或支持针对 OpenAI 接口的推理引擎封装（详见[官方文档](https://opencompass.readthedocs.io/zh-cn/latest/advanced_guides/new_model.html)），您仍然可以使用 OpenCompass 对其进行评估。欢迎您贡献维护 OpenCompass 支持的模型和数据集列表。
 
   ```bash
   opencompass --datasets demo_gsm8k_chat_gen --hf-type chat --hf-path internlm/internlm2_5-1_8b-chat
   ```
 
-  如果你想在多块 GPU 上使用模型进行推理，您可以使用 `--max-num-worker` 参数。
+  #### 支持的数据集
+
+  目前，OpenCompass针对数据集给出了标准的推荐配置。通常，`_gen.py`或`_llm_judge_gen.py`为结尾的配置文件将指向我们为该数据集提供的推荐配置。您可以参阅[官方文档](https://opencompass.readthedocs.io/zh-cn/latest/dataset_statistics.html) 的数据集统计章节来获取详细信息。
+
+  ```bash
+  # 基于规则的推荐配置
+  opencompass --datasets aime2024_gen --models hf_internlm2_5_1_8b_chat
+
+  # 基于LLM Judge的推荐配置
+  opencompass --datasets aime2024_llm_judge_gen --models hf_internlm2_5_1_8b_chat
+  ```
+
+  此外，如果你想在多块 GPU 上使用模型进行推理，您可以使用 `--max-num-worker` 参数。
 
   ```bash
   CUDA_VISIBLE_DEVICES=0,1 opencompass --datasets demo_gsm8k_chat_gen --hf-type chat --hf-path internlm/internlm2_5-1_8b-chat --max-num-worker 2
@@ -280,7 +295,7 @@ OpenCompass 是面向大模型评测的一站式平台。其主要特点如下�
 
 您可以通过排序、筛选和搜索等功能从列表中快速找到您需要的数据集。
 
-详情请参阅 [官方文档](https://opencompass.org.cn/doc) 的数据集统计章节。
+详情请参阅 [官方文档](https://opencompass.readthedocs.io/zh-cn/latest/dataset_statistics.html) 的数据集统计章节。
 
 <p align="right"><a href="#top">🔝返回顶部</a></p>
 
