@@ -70,7 +70,7 @@ shuffled_story_with_prompt_zh_CN = """下面是对你的多步推理能力的测
 注意：
 1. 你不必纠结这个测试中的人名的性别关系，例如，一个通常被视为女性化的名字仍然可以是其他人的父亲，我们的重点是谁更年长。
 2. 忽略这个测试中的姓氏遗传问题，例如，李明仍然可能是王鹏的亲生父亲，我们只关注谁更年长，不必纠结孩子是否应该继承父亲或母亲的性别。
-3. 在回答的最后，将你的答案放在\\boxed{{}}中，例如：“所以{last_person}能向上追溯到的最年长的亲人就是\\boxed{{某人（你的答案）}}”
+3. 在回答的最后，将你的答案放在\\boxed{{}}中，例如："所以{last_person}能向上追溯到的最年长的亲人就是\\boxed{{某人（你的答案）}}"
 
 现在，打乱的家族关系文本如下：
 {shuffled_story}
@@ -206,6 +206,8 @@ def clean_atc_answer(text: str) -> str:
     
     # Remove quotes
     text = text.replace('"', '').replace("'", '')
+    # Remove tildes (波浪符号)
+    text = text.replace('~', ' ')
         
     return text
 
