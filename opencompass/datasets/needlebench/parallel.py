@@ -70,7 +70,6 @@ class NeedleBenchParallelDataset(BaseDataset):
         file_list: list[str],
         num_repeats_per_file: int,
         length_buffer: int,
-        guide: bool,
         language: str,
         quesiton_position: str = 'End',
     ):

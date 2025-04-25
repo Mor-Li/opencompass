@@ -43,7 +43,6 @@ class NeedleBenchOriginDataset(BaseDataset):
         file_list: list[str],
         num_repeats_per_file: int,
         length_buffer: int,
-        guide: bool,
         language: str,
         needle_file_name: str,
         quesiton_position: str = 'End',
@@ -64,39 +63,6 @@ class NeedleBenchOriginDataset(BaseDataset):
 
         def _decode_tokens(tokens):
             return tokenizer.decode(tokens)
-
-        def _modify_retrieval_question(retrieval_question):
-            if language == 'Chinese':
-                parts = retrieval_question.split('请按照')
-                guide_retrieval_question = (parts[0] + '在回答之前，请思考文档中与此问题'
-                                            '最相关的内容是什么。请按照' + parts[1])
-                return guide_retrieval_question
-            elif language == 'English':
-                parts = retrieval_question.split('Please answer in the format')
-                guide_retrieval_question = (
-                    parts[0] + 'Before answering, please consider'
-                    ' what in the document is most relevant to this question.'
-                    ' Please answer in the format' + parts[1])
-                return guide_retrieval_question
-            else:
-                raise ValueError(f"Language '{language}' is not supported.")
-
-        def _modify_retrieval_question_for_base(retrieval_question):
-            if language == 'Chinese':
-                parts = retrieval_question.split('请按照')
-                retrieval_question = (parts[0] + '在回答之前，请思考文档中与此问题'
-                                      '最相关的内容是什么。请按照' + parts[1])
-                return retrieval_question.replace("请按照'", '')[:-16]
-            elif language == 'English':
-                parts = retrieval_question.split('Please answer in the format')
-                retrieval_question = (
-                    parts[0] + 'Before answering, please consider'
-                    ' what in the document is most relevant to this question.'
-                    ' Please answer in the format' + parts[1])
-                return retrieval_question.replace(
-                    "Please answer in the format '", '')[:-10]
-            else:
-                raise ValueError(f"Language '{language}' is not supported.")
 
         def _generate_prompt(context, retrieval_question):
 

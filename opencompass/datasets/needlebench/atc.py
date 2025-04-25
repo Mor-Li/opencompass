@@ -12,8 +12,6 @@ from opencompass.datasets.needlebench.atc_elder_only import clean_atc_answer, ne
 from opencompass.utils import get_data_path
 
 
-    
-    
 # 定义问题类型枚举
 class QuestionType(Enum):
     ELDEST_ANCESTOR = 0       # 最年长祖先

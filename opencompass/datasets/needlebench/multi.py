@@ -78,7 +78,6 @@ class NeedleBenchMultiDataset(BaseDataset):
         file_list: 'list[str]',
         num_repeats_per_file: int,
         length_buffer: int,
-        guide: bool,
         language: str,
         needle_file_name: str,
         num_needles: int,
