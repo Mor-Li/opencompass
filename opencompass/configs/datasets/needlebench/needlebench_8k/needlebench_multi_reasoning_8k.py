@@ -12,7 +12,7 @@ file_list = ['PaulGrahamEssays.jsonl']
 needle_file_name = 'names.json'
 diff = 10
 language = 'English'
-length_buffer = 3000
+length_buffer = 500
 
 # Initialize dataset lists
 needlebench_2needle_en_datasets = []

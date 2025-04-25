@@ -41,7 +41,7 @@ language_configs = [
         'file_list': ['PaulGrahamEssays.jsonl'],
         'dataset_var': 'needlebench_en_datasets',
         'language': 'English',
-        'length_buffer': 3000,
+        'length_buffer': 500,
         'suffix': 'en'
     },
     {
