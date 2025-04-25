@@ -8,11 +8,12 @@ from datasets import Dataset
 
 from opencompass.datasets.base import BaseDataset
 from opencompass.registry import ICL_EVALUATORS, LOAD_DATASET, TEXT_POSTPROCESSORS
-from opencompass.openicl.icl_evaluator import BaseEvaluator
-
+from opencompass.datasets.needlebench.atc_elder_only import clean_atc_answer, needlebench_atc_postprocess_v2, NeedleBenchATCEvaluator
 from opencompass.utils import get_data_path
-from opencompass.datasets.math import extract_boxed_answer
 
+
+    
+    
 # 定义问题类型枚举
 class QuestionType(Enum):
     ELDEST_ANCESTOR = 0       # 最年长祖先
@@ -260,9 +261,15 @@ class NeedleBenchATCDataset(BaseDataset):
         num_needles: int,
         language: str,
         repeats: int,
-        question_types=None,  # 支持指定问题类型列表
+        # 这个参数无法通过mmengine传入过来因为被block为lazy了
+        question_types: list[QuestionType] = [
+            QuestionType.ELDEST_ANCESTOR,
+            QuestionType.NTH_ANCESTOR,
+            QuestionType.NTH_DESCENDANT,
+            QuestionType.RELATIONSHIP_DISTANCE,
+        ],  # 支持指定问题类型列表
     ):
-        data = {'prompt': [], 'answer': []}
+        data = {'prompt': [], 'answer': [], 'question_type': []}
         path = get_data_path(path)
         if os.environ.get('DATASET_SOURCE') == 'HF':
             from huggingface_hub import snapshot_download
@@ -276,40 +283,9 @@ class NeedleBenchATCDataset(BaseDataset):
         all_names = names_data[language].split(',')
         # 确保question_types非空
         if not question_types:
-            question_types = [QuestionType.ELDEST_ANCESTOR]
+            raise ValueError('question_types cannot be empty')
         
-        # 确保question_types是QuestionType枚举类型
-        converted_question_types = []
-        for qt in question_types:
-            if isinstance(qt, QuestionType):
-                converted_question_types.append(qt)
-            elif isinstance(qt, str) and hasattr(QuestionType, qt):
-                # 处理字符串类型的question_type
-                converted_question_types.append(getattr(QuestionType, qt))
-            elif hasattr(qt, "name") and hasattr(QuestionType, qt.name):
-                # 处理具有name属性的对象
-                converted_question_types.append(getattr(QuestionType, qt.name))
-            else:
-                # 尝试从值转换回QuestionType
-                try:
-                    qt_value = int(qt) if not isinstance(qt, int) else qt
-                    for enum_qt in QuestionType:
-                        if enum_qt.value == qt_value:
-                            converted_question_types.append(enum_qt)
-                            break
-                    else:
-                        print(f"Warning: Cannot convert {qt} to QuestionType, using ELDEST_ANCESTOR instead")
-                        converted_question_types.append(QuestionType.ELDEST_ANCESTOR)
-                except (ValueError, TypeError):
-                    print(f"Warning: Cannot convert {qt} to QuestionType, using ELDEST_ANCESTOR instead")
-                    converted_question_types.append(QuestionType.ELDEST_ANCESTOR)
-        
-        if not converted_question_types:
-            converted_question_types = [QuestionType.ELDEST_ANCESTOR]
-            
-        # print(f"Using question types: {[qt.name for qt in converted_question_types]}")
-
-        for question_type in converted_question_types:
+        for question_type in question_types:
             # print(f"Generating examples for question type: {question_type.name}")
             # 为每个问题类型生成指定数量的示例
             for i in range(repeats):
@@ -319,7 +295,8 @@ class NeedleBenchATCDataset(BaseDataset):
                 random.seed(seed)
                 
                 # 从所有名字中随机选择指定数量的名字
-                names = random.sample(all_names, num_needles)
+                # 这个是needle数量加1就是name的数量
+                names = random.sample(all_names, num_needles+1)
                 
                 # 根据语言选择相应的关系术语和模板
                 if language == 'Chinese':
@@ -349,7 +326,6 @@ class NeedleBenchATCDataset(BaseDataset):
 
                         # 获取这种关系对应的代数
                         gen_diff = relationship_map.get(relation_term, 1)  # 默认为1代
-                        # print(f"[Generation Calculation] {names[i]} 是 {names[i+1]} 的 {relation_term}，本次代数差为 {gen_diff}，累计总代数: {total_generations} -> {total_generations + gen_diff}")
                         total_generations += gen_diff
 
                         # 记录关系信息以便后续使用
@@ -362,7 +338,6 @@ class NeedleBenchATCDataset(BaseDataset):
 
                 # Splitting the chain_story into a list of fragments
                 family_story_fragments = chain_story.split('*')
-                # 移除空字符串
                 family_story_fragments = [f for f in family_story_fragments if f]
 
                 # Shuffling the list of fragments
@@ -371,7 +346,6 @@ class NeedleBenchATCDataset(BaseDataset):
                 # Joining the shuffled fragments back into a string
                 shuffled_story = ''.join(family_story_fragments)
 
-                # 根据问题类型生成相应的提示和答案
                 if question_type == QuestionType.ELDEST_ANCESTOR:
                     # 最年长祖先问题
                     last_person = names[-1]
@@ -396,6 +370,7 @@ class NeedleBenchATCDataset(BaseDataset):
                     answer = names[0]  # 最老的人（链条开头）是第n代祖先
 
                 elif question_type == QuestionType.NTH_DESCENDANT:
+                    # print("Generating NTH_DESCENDANT examples")
                     # N级子孙问题 - 从最老的人开始，向下追溯到最年轻的人
                     person = names[0]  # 最老的人（链条开头）
                     n = total_generations  # 使用计算出的总代数差异
@@ -433,183 +408,11 @@ class NeedleBenchATCDataset(BaseDataset):
 
                 data['prompt'].append(prompt)
                 data['answer'].append(answer)
-
-        # 将每个样本的问题类型（question_type）加入到dataset中
-        # 这里将其以字符串形式存储，便于后续处理
-        # 假设每个样本都按顺序append到data中，因此可以直接生成对应的question_type列表
-        # 由于外层循环是 for question_type in question_types: for i in range(repeats): append
-        # 所以每个question_type会有repeats个样本，顺序与data['prompt']一致
-        question_type_list = []
-        for question_type in converted_question_types:
-            for i in range(repeats):
-                question_type_list.append(str(question_type.name if hasattr(question_type, "name") else str(question_type)))
-
-        # 如果有多种question_type，question_type_list长度应与data['prompt']一致
-        assert len(question_type_list) == len(data['prompt']), "question_type_list and data length mismatch"
+                data['question_type'].append(question_type.name)
 
         dataset = Dataset.from_dict({
             'prompt': data['prompt'],
             'answer': data['answer'],
-            'question_type': question_type_list,
+            'question_type': data['question_type'],
         })
         return dataset
-
-
-def clean_atc_answer(text: str) -> str:
-    """Clean answer format specifically for QwQ-32B-Preview model
-    
-    Args:
-        text: Raw prediction text
-        
-    Returns:
-        Standardized name format after cleaning
-    """
-    if not text or text == "None":
-        return "None"
-    
-    # Remove LaTeX commands but keep content
-    text = re.sub(r'\\text\{([^}]+)\}', r'\1', text)
-    text = re.sub(r'\\boxed\{([^}]+)\}', r'\1', text)
-    text = re.sub(r'\\[\[\]]', '', text)
-    
-    # Remove extra backslashes
-    text = text.replace('\\\\', '').replace('\\', '')
-    
-    # Handle extra spaces
-    text = re.sub(r'\s+', ' ', text).strip()
-    
-    # Remove quotes
-    text = text.replace('"', '').replace("'", '')
-    # Remove tildes (波浪符号)
-    text = text.replace('~', ' ')
-        
-    return text
-
-@TEXT_POSTPROCESSORS.register_module('needlebench_atc_postprocess_v2')
-def needlebench_atc_postprocess_v2(text: str) -> str:
-
-    cand_ans = extract_boxed_answer(text, strip_double_curly_brace=True)
-    
-    if cand_ans:
-        return clean_atc_answer(cand_ans)
-    return "None"
-
-
-@ICL_EVALUATORS.register_module("needlebench_atc_evaluator")
-class NeedleBenchATCEvaluator(BaseEvaluator):
-
-    def score(self, predictions, gold):
-        if len(predictions) != len(gold):
-            return {'error': 'predictions and gold have different lengths'}
-
-        correct_count = 0
-        details = []
-        
-        for prediction, reference in zip(predictions, gold):
-            reference_name = reference
-            if prediction.strip() == reference_name.strip():
-                correct_count += 1
-            
-            detail = {
-                'pred': prediction,
-                'answer': reference_name,
-                'correct': prediction.strip() == reference_name.strip()
-            }
-            details.append(detail)
-
-        accuracy = (correct_count / len(predictions)) * 100 if predictions else 0
-        result = {'score': accuracy, 'details': details}
-        return result
-    
-if __name__ == '__main__':
-    import argparse
-    import os
-    import json
-    
-    # 命令行参数解析
-    parser = argparse.ArgumentParser(description='生成NeedleBench ATC数据集示例')
-    parser.add_argument('--num_needles', type=int, default=2, help='链条中的人物数量')
-    parser.add_argument('--language', type=str, default='English', choices=['English', 'Chinese'], help='语言')
-    parser.add_argument('--repeats', type=int, default=2, help='每种问题类型生成的示例数量')
-    parser.add_argument('--output_dir', type=str, default='needlebench_examples', help='输出目录')
-    parser.add_argument('--all_types', action='store_true', help='生成所有问题类型的示例')
-    args = parser.parse_args()
-    
-    # 确保输出目录存在
-    os.makedirs(args.output_dir, exist_ok=True)
-    
-    # 准备名字数据
-    names_data = {
-        'English': 'Alice,Bob,Charlie,David,Emma,Frank,Grace,Henry,Ivy,Jack,Kate,Leo,Mia,Noah,Olivia,Peter,Quinn,Ryan,Sophia,Thomas,Uma,Victor,Wendy,Xavier,Yara,Zack',
-        'Chinese': '张伟,王芳,李娜,刘洋,陈明,杨丽,赵强,周红,吴刚,徐静,孙伟,马丽,胡明,朱红,谢强,郑静,黄伟,杨明,林丽,叶强,宋静,韩伟,唐丽,董强,梁静,冯伟,程丽,曹强,袁静,许伟'
-    }
-    
-    # 如果找不到名字数据，就使用默认名字
-    try:
-        file_path = os.path.join('opencompass/needlebench', 'names.json')
-        if os.path.exists(file_path):
-            with open(file_path, 'r', encoding='utf-8') as file:
-                names_data = json.load(file)
-    except Exception as e:
-        print(f"使用默认名字数据，无法加载names.json: {e}")
-    
-    # 设置问题类型
-    if args.all_types:
-        # 只包含前四种类型
-        question_types = [
-            QuestionType.ELDEST_ANCESTOR,
-            QuestionType.NTH_ANCESTOR,
-            QuestionType.NTH_DESCENDANT,
-            QuestionType.RELATIONSHIP_DISTANCE
-        ]
-    else:
-        question_types = [
-            QuestionType.ELDEST_ANCESTOR,
-            QuestionType.NTH_ANCESTOR,
-            QuestionType.NTH_DESCENDANT,
-            QuestionType.RELATIONSHIP_DISTANCE
-        ]
-    
-    # 为每种问题类型生成示例
-    examples = {}
-    for qt in question_types:
-        print(f"生成问题类型: {qt.name}")
-        dataset = NeedleBenchATCDataset.load(
-            path='opencompass/needlebench',
-            file_name='names.json',
-            num_needles=args.num_needles,
-            language=args.language,
-            repeats=args.repeats,
-            question_types=[qt]
-        )
-        
-        examples[qt.name] = []
-        for i in range(len(dataset)):
-            example = {
-                'prompt': dataset[i]['prompt'],
-                'answer': dataset[i]['answer']
-            }
-            examples[qt.name].append(example)
-            
-            # 打印一个示例
-            if i == 0:
-                print("\n" + "="*50)
-                print(f"问题类型: {qt.name}")
-                print("="*50)
-                print(f"问题:\n{example['prompt']}")
-                print("-"*50)
-                print(f"标准答案: {example['answer']}")
-                print("="*50 + "\n")
-    
-    # 将示例保存到文件
-    output_file = os.path.join(args.output_dir, f'needlebench_atc_{args.language}_{args.num_needles}names.json')
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(examples, f, ensure_ascii=False, indent=2)
-    
-    print(f"已保存所有示例到: {output_file}")
-    
-    # 汇总统计
-    total_examples = sum(len(exs) for exs in examples.values())
-    print(f"\n生成完成! 总共生成了 {total_examples} 个示例，涵盖 {len(examples)} 种问题类型")
-    for qt_name, exs in examples.items():
-        print(f"  - {qt_name}: {len(exs)} 个示例")
