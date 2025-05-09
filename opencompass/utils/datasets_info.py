@@ -27,6 +27,12 @@ DATASETS_MAPPING = {
         "hf_id": "opencompass/ai2_arc",
         "local": "./data/ARC/ARC-e/ARC-Easy-Dev.jsonl",
     },
+    # Matbench
+    "opencompass/Matbench": {
+    # "ms_id": "opencompass/Matbench",
+    "hf_id": "opencompass/Matbench",
+    "local": "./data/Matbench",
+    },
     # BBH
     "opencompass/bbh": {
         "ms_id": "opencompass/bbh",
@@ -420,9 +426,50 @@ DATASETS_MAPPING = {
         "hf_id": "",
         "local": "./data/OlympiadBench",
     },
+    "opencompass/ClimaQA-Gold": {
+        "ms_id": "",
+        "hf_id": "",
+        "local": "./data/climaqa_gold",
+    },
+    "opencompass/ClimaQA-Silver": {
+        "ms_id": "",
+        "hf_id": "",
+        "local": "./data/climaqa_silver",
+    },
+    "opencompass/PHYSICS-textonly": {
+        "ms_id": "",
+        "hf_id": "",
+        "local": "./data/PHYSICS-textonly",
+    },
+     "opencompass/ChemBench4K": {
+        "ms_id": "",
+        "hf_id": "",
+        "local": "./data/ChemBench4K",
+    },
+    "opencompass/nejmaibench": {
+        "ms_id": "",
+        "hf_id": "",
+        "local": "./data/nejmaibench/NEJM_All_Questions_And_Answers.csv",
+    },
+
 }
 
 DATASETS_URL = {
+    "/climaqa_gold": {
+        "url":
+        "http://opencompass.oss-cn-shanghai.aliyuncs.com/datasets/data/climaqa_gold.zip",
+        "md5": "310cd0dc96db2bbbce798c40e2163ac2",
+    },
+    "/climaqa_silver": {
+        "url":
+        "http://opencompass.oss-cn-shanghai.aliyuncs.com/datasets/data/climaqa_silver.zip",
+        "md5": "acdd955f1c170539c5233c12f7227c58",
+    },
+    "/PHYSICS-textonly": {
+        "url":
+        "http://opencompass.oss-cn-shanghai.aliyuncs.com/datasets/data/PHYSICS-textonly.zip",
+        "md5": "92be6846a22dd4da942ca43f0638c709",
+    },
     "/OlympiadBench": {
         "url":
         "http://opencompass.oss-cn-shanghai.aliyuncs.com/datasets/data/OlympiadBench.zip",
@@ -628,6 +675,11 @@ DATASETS_URL = {
         "http://opencompass.oss-cn-shanghai.aliyuncs.com/datasets/data/SQuAD2.0.zip",
         "md5": "1321cbf9349e1102a57d31d1b2bfdd7e",
     },
+    "/Matbench":{
+        "url":
+        "http://opencompass.oss-cn-shanghai.aliyuncs.com/datasets/data/Matbench.zip",
+        "md5": "99f9457f54f4f419da9556af56ac4c24",
+    },
     "mmlu_pro": {
         "url":
         "http://opencompass.oss-cn-shanghai.aliyuncs.com/datasets/data/mmlu_pro.zip",
@@ -746,5 +798,16 @@ DATASETS_URL = {
         "url":
         "http://opencompass.oss-cn-shanghai.aliyuncs.com/datasets/data/bigcodebench.zip",
         "md5": "270f399f4142b74f47ecff116cc3b21d"
+    },
+    "ChemBench4K": {
+        "url":
+        "http://opencompass.oss-cn-shanghai.aliyuncs.com/datasets/data/ChemBench4K.zip",
+        "md5": "fc23fd21b2566a5dbbebfa4601d7779c"
+    },
+    "nejmaibench": {
+        "url":
+        "http://opencompass.oss-cn-shanghai.aliyuncs.com/datasets/data/nejmaibench.zip",
+        "md5": "e6082cae3596b3ebea73e23ba445b99e"
     }
+    
 }
