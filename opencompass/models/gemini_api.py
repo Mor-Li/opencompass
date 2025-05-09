@@ -1,5 +1,6 @@
 # flake8: noqa: E501
 import json
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional, Union
@@ -43,12 +44,20 @@ class Gemini(BaseAPIModel):
         top_p: float = 0.8,
         top_k: float = 10.0,
     ):
-        super().__init__(path=path,
-                         max_seq_len=max_seq_len,
-                         query_per_second=query_per_second,
-                         meta_template=meta_template,
-                         retry=retry)
-        self.url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={key}'
+        super().__init__(
+            path=path,
+            max_seq_len=max_seq_len,
+            query_per_second=query_per_second,
+            meta_template=meta_template,
+            retry=retry,
+        )
+        assert isinstance(key, str)
+        if key == 'ENV':
+            if 'GEMINI_API_KEY' not in os.environ:
+                raise ValueError('GEMINI API key is not set.')
+            key = os.getenv('GEMINI_API_KEY')
+
+        self.url = f'https://generativelanguage.googleapis.com/v1beta/models/{path}:generateContent?key={key}'
         self.temperature = temperature
         self.top_p = top_p
         self.top_k = top_k
@@ -58,13 +67,13 @@ class Gemini(BaseAPIModel):
 
     def generate(
         self,
-        inputs: List[str or PromptList],
+        inputs: List[PromptType],
         max_out_len: int = 512,
     ) -> List[str]:
         """Generate results given a list of inputs.
 
         Args:
-            inputs (List[str or PromptList]): A list of strings or PromptDicts.
+            inputs (List[PromptType]): A list of strings or PromptDicts.
                 The PromptDict should be organized in OpenCompass'
                 API format.
             max_out_len (int): The maximum length of the output.
@@ -81,13 +90,13 @@ class Gemini(BaseAPIModel):
 
     def _generate(
         self,
-        input: str or PromptList,
+        input: PromptType,
         max_out_len: int = 512,
     ) -> str:
         """Generate results given an input.
 
         Args:
-            inputs (str or PromptList): A string or PromptDict.
+            inputs (PromptType): A string or PromptDict.
                 The PromptDict should be organized in OpenCompass'
                 API format.
             max_out_len (int): The maximum length of the output.
@@ -135,19 +144,15 @@ class Gemini(BaseAPIModel):
             'safetySettings': [
                 {
                     'category': 'HARM_CATEGORY_DANGEROUS_CONTENT',
-                    'threshold': 'BLOCK_NONE'
+                    'threshold': 'BLOCK_NONE',
                 },
                 {
                     'category': 'HARM_CATEGORY_HATE_SPEECH',
-                    'threshold': 'BLOCK_NONE'
+                    'threshold': 'BLOCK_NONE',
                 },
                 {
                     'category': 'HARM_CATEGORY_HARASSMENT',
-                    'threshold': 'BLOCK_NONE'
-                },
-                {
-                    'category': 'HARM_CATEGORY_DANGEROUS_CONTENT',
-                    'threshold': 'BLOCK_NONE'
+                    'threshold': 'BLOCK_NONE',
                 },
             ],
             'generationConfig': {
@@ -155,8 +160,8 @@ class Gemini(BaseAPIModel):
                 'temperature': self.temperature,
                 'maxOutputTokens': 2048,
                 'topP': self.top_p,
-                'topK': self.top_k
-            }
+                'topK': self.top_k,
+            },
         }
 
         for _ in range(self.retry):
@@ -171,81 +176,24 @@ class Gemini(BaseAPIModel):
                                   str(raw_response.content))
                 time.sleep(1)
                 continue
-            if raw_response.status_code == 200 and response['msg'] == 'ok':
-                body = response['body']
-                if 'candidates' not in body:
+            if raw_response.status_code == 200:
+                if 'candidates' not in response:
                     self.logger.error(response)
                 else:
-                    if 'content' not in body['candidates'][0]:
+                    if 'content' not in response['candidates'][0]:
                         return "Due to Google's restrictive policies, I am unable to respond to this question."
                     else:
-                        return body['candidates'][0]['content']['parts'][0][
-                            'text'].strip()
-            self.logger.error(response['msg'])
+                        if not response['candidates'][0]['content']:
+                            return ''
+                        else:
+                            return response['candidates'][0]['content'][
+                                'parts'][0]['text'].strip()
+            try:
+                msg = response['error']['message']
+                self.logger.error(msg)
+            except KeyError:
+                pass
             self.logger.error(response)
-            time.sleep(1)
+            time.sleep(20)
 
         raise RuntimeError('API call failed.')
-
-
-class GeminiAllesAPIN(Gemini):
-    """Model wrapper around Gemini models.
-
-    Documentation:
-
-    Args:
-        path (str): The name of Gemini model.
-            e.g. `gemini-pro`
-        key (str): Authorization key.
-        query_per_second (int): The maximum queries allowed per second
-            between two consecutive calls of the API. Defaults to 1.
-        max_seq_len (int): Unused here.
-        meta_template (Dict, optional): The model's meta prompt
-            template if needed, in case the requirement of injecting or
-            wrapping of any meta instructions.
-        retry (int): Number of retires if the API call fails. Defaults to 2.
-    """
-
-    def __init__(
-        self,
-        path: str,
-        key: str,
-        url: str,
-        query_per_second: int = 2,
-        max_seq_len: int = 2048,
-        meta_template: Optional[Dict] = None,
-        retry: int = 2,
-        temperature: float = 1.0,
-        top_p: float = 0.8,
-        top_k: float = 10.0,
-    ):
-        super().__init__(key=key,
-                         path=path,
-                         max_seq_len=max_seq_len,
-                         query_per_second=query_per_second,
-                         meta_template=meta_template,
-                         retry=retry)
-        # Replace the url and headers into AllesApin
-        self.url = url
-        self.headers = {
-            'alles-apin-token': key,
-            'content-type': 'application/json',
-        }
-
-    def generate(
-        self,
-        inputs: List[str or PromptList],
-        max_out_len: int = 512,
-    ) -> List[str]:
-        """Generate results given a list of inputs.
-
-        Args:
-            inputs (List[str or PromptList]): A list of strings or PromptDicts.
-                The PromptDict should be organized in OpenCompass'
-                API format.
-            max_out_len (int): The maximum length of the output.
-
-        Returns:
-            List[str]: A list of generated strings.
-        """
-        return super().generate(inputs, max_out_len)

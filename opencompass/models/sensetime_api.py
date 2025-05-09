@@ -61,13 +61,13 @@ class SenseTime(BaseAPIModel):
 
     def generate(
         self,
-        inputs: List[str or PromptList],
+        inputs: List[PromptType],
         max_out_len: int = 512,
     ) -> List[str]:
         """Generate results given a list of inputs.
 
         Args:
-            inputs (List[str or PromptList]): A list of strings or PromptDicts.
+            inputs (List[PromptType]): A list of strings or PromptDicts.
                 The PromptDict should be organized in OpenCompass'
                 API format.
             max_out_len (int): The maximum length of the output.
@@ -84,13 +84,13 @@ class SenseTime(BaseAPIModel):
 
     def _generate(
         self,
-        input: str or PromptList,
+        input: PromptType,
         max_out_len: int = 512,
     ) -> str:
         """Generate results given an input.
 
         Args:
-            inputs (str or PromptList): A string or PromptDict.
+            inputs (PromptType): A string or PromptDict.
                 The PromptDict should be organized in OpenCompass'
                 API format.
             max_out_len (int): The maximum length of the output.
@@ -104,17 +104,27 @@ class SenseTime(BaseAPIModel):
             messages = [{'role': 'user', 'content': input}]
         else:
             messages = []
+            msg_buffer, last_role = [], None
             for item in input:
-                msg = {'content': item['prompt']}
-                if item['role'] == 'HUMAN':
-                    msg['role'] = 'user'
-                elif item['role'] == 'BOT':
-                    msg['role'] = 'assistant'
-
-                messages.append(msg)
+                if not item['prompt']:
+                    continue
+                item['role'] = 'assistant' if item['role'] == 'BOT' else 'user'
+                if item['role'] != last_role and last_role is not None:
+                    messages.append({
+                        'content': '\n'.join(msg_buffer),
+                        'role': last_role
+                    })
+                    msg_buffer = []
+                msg_buffer.append(item['prompt'])
+                last_role = item['role']
+            messages.append({
+                'content': '\n'.join(msg_buffer),
+                'role': last_role
+            })
 
         data = {'messages': messages, 'model': self.model}
-        data.update(self.params)
+        if self.params is not None:
+            data.update(self.params)
 
         stream = data['stream']
 
@@ -123,10 +133,14 @@ class SenseTime(BaseAPIModel):
             self.acquire()
 
             max_num_retries += 1
-            raw_response = requests.request('POST',
-                                            url=self.url,
-                                            headers=self.headers,
-                                            json=data)
+            try:
+                raw_response = requests.request('POST',
+                                                url=self.url,
+                                                headers=self.headers,
+                                                json=data)
+            except Exception:
+                time.sleep(1)
+                continue
             requests_id = raw_response.headers['X-Request-Id']  # noqa
             self.release()
 
@@ -152,6 +166,9 @@ class SenseTime(BaseAPIModel):
                         return 'error:too long'
                     else:
                         print(raw_response.text)
+                        from IPython import embed
+                        embed()
+                        exit()
                         time.sleep(1)
                         continue
             else:
@@ -193,7 +210,4 @@ class SenseTime(BaseAPIModel):
                     time.sleep(1)
                     continue
 
-        return ''
-        raise RuntimeError(
-            f'request id: '
-            f'{raw_response.headers.get("X-Request-Id")}, {raw_response.text}')
+        raise RuntimeError

@@ -1,3 +1,4 @@
+# flake8: noqa: E501
 import inspect
 from abc import abstractmethod
 from copy import deepcopy
@@ -28,8 +29,10 @@ class BasePartitioner:
         self.out_dir = out_dir
         if keep_keys is None:
             self.keep_keys = [
-                'eval.runner.task.judge_cfg', 'eval.runner.task.dump_details',
-                'eval.given_pred'
+                'eval.runner.task.judge_cfg',
+                'eval.runner.task.dump_details',
+                'eval.given_pred',
+                'eval.runner.task.cal_extract_rate',
             ]
         else:
             self.keep_keys = keep_keys
@@ -81,14 +84,25 @@ class BasePartitioner:
                                work_dir=work_dir,
                                out_dir=self.out_dir,
                                add_cfg=add_cfg)
-
-        self.logger.info(f'Partitioned into {len(tasks)} tasks.')
-        for i, task in enumerate(tasks):
-            self.logger.debug(f'Task {i}: {task_abbr_from_cfg(task)}')
-
+        if isinstance(tasks, list) and len(tasks) != 0 and isinstance(
+                tasks[0], list):
+            self.logger.info(
+                f'Now we are in the subjective evluation! Partitioned into 2 stages and {len(tasks[0])} tasks in first stage, {len(tasks[1])} tasks in second stage.'
+            )
+            cnt = 0
+            for task_part in tasks:
+                for task in task_part:
+                    self.logger.debug(
+                        f'Task {cnt}: {task_abbr_from_cfg(task)}')
+                    cnt += 1
+        else:
+            self.logger.info(f'Partitioned into {len(tasks)} tasks.')
+            for i, task in enumerate(tasks):
+                self.logger.debug(f'Task {i}: {task_abbr_from_cfg(task)}')
         return tasks
 
     def parse_model_dataset_args(self, cfg: ConfigDict):
+
         models = cfg['models']
         datasets = cfg['datasets']
 
@@ -96,7 +110,24 @@ class BasePartitioner:
         if 'model_dataset_combinations' in sig.parameters:
             combs = cfg.get('model_dataset_combinations', None)
             if combs is None:
-                combs = [{'models': models, 'datasets': datasets}]
+                if 'rs_exist_results' in cfg.keys():
+                    rs_exist_results = cfg['rs_exist_results']
+                    combs = []
+                    for model in models:
+                        comb = {'models': [model], 'datasets': datasets}
+                        combs.append(comb)
+                    for i in range(len(combs)):
+                        combs[i]['datasets'] = [
+                            dataset for dataset in combs[i]['datasets'] if [
+                                model_abbr_from_cfg(combs[i]['models'][0]),
+                                dataset_abbr_from_cfg(dataset)
+                            ] not in rs_exist_results
+                        ]
+                    combs = [
+                        comb for comb in combs if len(comb['datasets']) != 0
+                    ]
+                else:
+                    combs = [{'models': models, 'datasets': datasets}]
             else:
                 # sanity check
                 model_abbrs = [model_abbr_from_cfg(model) for model in models]

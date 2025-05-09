@@ -2,7 +2,6 @@ import json
 import os
 import random
 import re
-from pathlib import Path
 
 import tiktoken
 from datasets import Dataset
@@ -10,9 +9,10 @@ from datasets import Dataset
 from opencompass.datasets.base import BaseDataset
 from opencompass.openicl import BaseEvaluator
 from opencompass.registry import LOAD_DATASET, TEXT_POSTPROCESSORS
+from opencompass.utils import get_data_path
 
 
-def get_random_line_by_language(file_path, language):
+def get_random_line_by_language(counter, file_path, language):
     with open(file_path, 'r', encoding='utf-8') as file:
         lines = [
             json.loads(line.strip()) for line in file
@@ -20,6 +20,7 @@ def get_random_line_by_language(file_path, language):
         ]
 
     if lines:
+        random.seed(counter)
         random_line = random.choice(lines)
         return {
             'needle': random_line['needle'],
@@ -45,6 +46,7 @@ class NeedleBenchOriginDataset(BaseDataset):
         guide: bool,
         language: str,
         needle_file_name: str,
+        position: str = 'End',
     ):
         data = {'prompt': [], 'answer': []}
         tokenizer = tiktoken.encoding_for_model(tokenizer_model)
@@ -79,44 +81,98 @@ class NeedleBenchOriginDataset(BaseDataset):
             else:
                 raise ValueError(f"Language '{language}' is not supported.")
 
+        def _modify_retrieval_question_for_base(retrieval_question):
+            if language == 'Chinese':
+                parts = retrieval_question.split('请按照')
+                retrieval_question = (parts[0] + '在回答之前，请思考文档中与此问题'
+                                      '最相关的内容是什么。请按照' + parts[1])
+                return retrieval_question.replace("请按照'", '')[:-16]
+            elif language == 'English':
+                parts = retrieval_question.split('Please answer in the format')
+                retrieval_question = (
+                    parts[0] + 'Before answering, please consider'
+                    ' what in the document is most relevant to this question.'
+                    ' Please answer in the format' + parts[1])
+                return retrieval_question.replace(
+                    "Please answer in the format '", '')[:-10]
+            else:
+                raise ValueError(f"Language '{language}' is not supported.")
+
         def _generate_prompt(context, retrieval_question):
             if guide:
                 retrieval_question = _modify_retrieval_question(
                     retrieval_question)
+            else:
+                retrieval_question = _modify_retrieval_question_for_base(
+                    retrieval_question)
 
             if language == 'Chinese':
-                prompt = ('你是一个善于回答用户问题的智能AI助手\n'
-                          '请保持你的回答简洁清楚。不要说和下面文档中的无关的话'
-                          '，或重复你的回答\n'
-                          f'用户现在给你的文档是{context}\n\n'
-                          f'现在请问：{retrieval_question}')
+                if position == 'End':
+                    prompt = ('你是一个善于回答用户问题的智能AI助手\n'
+                              '请保持你的回答简洁清楚。不要说和下面文档中的无关的话'
+                              '，或重复你的回答\n'
+                              f'用户现在给你的文档是{context}\n\n'
+                              f'现在请问：{retrieval_question}')
+                elif position == 'Start':
+                    prompt = ('你是一个善于回答用户问题的智能AI助手\n'
+                              '请保持你的回答简洁清楚。不要说和下面文档中的无关的话'
+                              '，或重复你的回答\n'
+                              f'现在请问：{retrieval_question}',
+                              f'用户现在给你的文档是{context}\n\n')
+                else:
+                    raise ValueError('Unsupported position. '
+                                     'Position must be "End" or "Start".')
             elif language == 'English':
-                prompt = ('You are an intelligent AI assistant skilled in '
-                          'answering user questions.\n'
-                          'Please keep your answers concise and clear. Do not'
-                          ' talk about irrelevant topics or repeat your '
-                          'answers.\n'
-                          f'The document given to you by the user is {context}'
-                          f'\n\nNow, the question is: {retrieval_question}')
+                if position == 'End':
+                    prompt = ('You are an intelligent AI assistant skilled in '
+                              'answering user questions.\n'
+                              'Please keep your answers concise and clear. Do '
+                              'not talk about irrelevant topics or repeat '
+                              'your answers.\nThe document '
+                              f'given to you by the user is {context}\n\n'
+                              f'Now, the question is: {retrieval_question}')
+                elif position == 'Start':
+                    prompt = ('You are an intelligent AI assistant skilled in '
+                              'answering user questions.\n'
+                              'Please keep your answers concise and clear. Do '
+                              'not talk about irrelevant topics or repeat '
+                              'your answers.\n'
+                              f'Now, the question is: {retrieval_question}'
+                              'The document given to you by the user'
+                              f' is {context}\n\n')
+                else:
+                    raise ValueError(f'Unsupported position {position}. '
+                                     'Position must be "End" or "Start".')
             else:
                 raise ValueError(f"Language '{language}' is not supported.")
 
             return prompt
 
-        files = Path(path).glob('*.jsonl')
-        for file in files:
-            if file.name not in file_list:
+        file_names = [
+            'en_un_asr.jsonl', 'zh_all.jsonl', 'PaulGrahamEssays.jsonl',
+            'multi_needle_reasoning_en.json', 'multi_needle_reasoning_zh.json',
+            'zh_finance.jsonl', 'zh_game.jsonl', 'zh_general.jsonl',
+            'zh_government.jsonl', 'zh_movie.jsonl', 'zh_tech.jsonl'
+        ]
+        path = get_data_path(path)
+        if os.environ.get('DATASET_SOURCE') == 'HF':
+            from huggingface_hub import snapshot_download
+            path = snapshot_download(repo_id=path, repo_type='dataset')
+        needle_file_path = os.path.join(path, needle_file_name)
+
+        for file_name in file_names:
+            file_path = os.path.join(path, file_name)
+            if file_name not in file_list:
                 continue
 
-            with open(file, 'r', encoding='utf-8') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 lines_bak = [json.loads(line.strip()) for line in f]
             lines = lines_bak.copy()
             for counter in range(num_repeats_per_file):
                 random.seed(counter)
                 random.shuffle(lines)
-                needle_file_path = os.path.join(path, needle_file_name)
                 random_needle = get_random_line_by_language(
-                    needle_file_path, language)
+                    counter, needle_file_path, language)
                 needle = '\n' + random_needle['needle'] + '\n'
                 retrieval_question = random_needle['retrieval_question']
                 keyword = random_needle['keyword']

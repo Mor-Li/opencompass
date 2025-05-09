@@ -2,14 +2,21 @@
 import json
 import os.path as osp
 import re
+from collections import defaultdict
 from typing import Optional
 
 from datasets import Dataset, DatasetDict
 
-from opencompass.registry import LOAD_DATASET
+from opencompass.registry import DICT_POSTPROCESSORS, LOAD_DATASET
+from opencompass.utils import get_data_path
 
 from ..base import BaseDataset
+from .utils import get_judgeanswer_and_reference
 
+COLUMNS = [
+    'total', 'writing', 'roleplay', 'reasoning', 'math', 'coding',
+    'extraction', 'stem', 'humanities'
+]
 NEED_REF_CATS = ['math', 'reasoning', 'coding', 'arena-hard-200']
 
 pair_v2 = {
@@ -166,7 +173,14 @@ def prompt_construct(problem, multi_turn=False, judge_type='single'):
 @LOAD_DATASET.register_module()
 class MTBenchDataset(BaseDataset):
 
-    def load(self, path: str, name: str, multi_turn=True, judge_type='single'):
+    def load(self,
+             path: str,
+             name: str,
+             judge_type='single',
+             multi_turn=True,
+             *args,
+             **kwargs):
+        path = get_data_path(path, local_mode=True)
         filename = osp.join(path, f'{name}.json')
         dataset = DatasetDict()
         raw_data = []
@@ -199,3 +213,56 @@ class MTBenchDataset(BaseDataset):
                     })
         dataset = Dataset.from_list(raw_data)
         return dataset
+
+
+def post_process_mtbench(judgement: str):
+    """Input a string like below:
+
+    xxx[[5]]xxx, and extract the score
+    """
+    judgement = judgement['prediction']
+    pattern = r'Rating:\s*\[\[([\d.]+)\]\]'
+    matched_result = re.findall(pattern, judgement)
+    if matched_result:
+        score = float(matched_result[0])
+    else:
+        return None
+    return {'score': score}
+
+
+def get_capability_results(
+    judged_answers,
+    references,
+):
+    columns = COLUMNS
+    capability_ratings = defaultdict(int)
+    capability_counts = defaultdict(int)
+    capability_avg_ratings = defaultdict(float)
+    if len(judged_answers) == 0:
+        for column in columns:
+            capability_avg_ratings[column] = ''
+    else:
+        for ans, ref in zip(judged_answers, references):
+            capability_ratings['total'] += ans['score']
+            capability_counts['total'] += 1
+            capability_ratings[ref['capability']] += ans['score']
+            capability_counts[ref['capability']] += 1
+
+        for capability, total_score in capability_ratings.items():
+            s = total_score / capability_counts[capability]
+            s = round(s, 2)
+            capability_avg_ratings[capability] = s
+    return capability_avg_ratings
+
+
+@DICT_POSTPROCESSORS.register_module('mtbench')
+def mtbench_postprocess(
+    output: dict,
+    output_path: str,
+) -> dict:
+    judged_answers, references = get_judgeanswer_and_reference(
+        output, output_path, post_process_mtbench)
+
+    results = get_capability_results(judged_answers, references)
+    results['details'] = output
+    return results

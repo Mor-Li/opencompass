@@ -33,39 +33,36 @@ class BaiChuan(BaseAPIModel):
     def __init__(
         self,
         path: str,
-        api_key: str,
+        key: str,
         url: str,
         query_per_second: int = 2,
         max_seq_len: int = 2048,
         meta_template: Optional[Dict] = None,
         retry: int = 2,
-        generation_kwargs: Dict = {
-            'temperature': 0.3,
-            'top_p': 0.85,
-            'top_k': 5,
-            'with_search_enhance': False,
-            'stream': False,
-        }):  # noqa E125
+        system_prompt: str = '',
+    ):
         super().__init__(path=path,
                          max_seq_len=max_seq_len,
                          query_per_second=query_per_second,
                          meta_template=meta_template,
-                         retry=retry,
-                         generation_kwargs=generation_kwargs)
-
-        self.api_key = api_key
+                         retry=retry)
+        self.headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + key,
+        }
         self.url = url
         self.model = path
+        self.system_prompt = system_prompt
 
     def generate(
         self,
-        inputs: List[str or PromptList],
+        inputs: List[PromptType],
         max_out_len: int = 512,
     ) -> List[str]:
         """Generate results given a list of inputs.
 
         Args:
-            inputs (List[str or PromptList]): A list of strings or PromptDicts.
+            inputs (List[PromptType]): A list of strings or PromptDicts.
                 The PromptDict should be organized in OpenCompass'
                 API format.
             max_out_len (int): The maximum length of the output.
@@ -82,13 +79,13 @@ class BaiChuan(BaseAPIModel):
 
     def _generate(
         self,
-        input: str or PromptList,
+        input: PromptType,
         max_out_len: int = 512,
     ) -> str:
         """Generate results given an input.
 
         Args:
-            inputs (str or PromptList): A string or PromptDict.
+            inputs (PromptType): A string or PromptDict.
                 The PromptDict should be organized in OpenCompass'
                 API format.
             max_out_len (int): The maximum length of the output.
@@ -96,29 +93,33 @@ class BaiChuan(BaseAPIModel):
         Returns:
             str: The generated string.
         """
-
         assert isinstance(input, (str, PromptList))
 
         if isinstance(input, str):
             messages = [{'role': 'user', 'content': input}]
         else:
             messages = []
+            msg_buffer, last_role = [], None
             for item in input:
-                msg = {'content': item['prompt']}
-                if item['role'] == 'HUMAN':
-                    msg['role'] = 'user'
-                elif item['role'] == 'BOT':
-                    msg['role'] = 'assistant'
+                item['role'] = 'assistant' if item['role'] == 'BOT' else 'user'
+                if item['role'] != last_role and last_role is not None:
+                    messages.append({
+                        'content': '\n'.join(msg_buffer),
+                        'role': last_role
+                    })
+                    msg_buffer = []
+                msg_buffer.append(item['prompt'])
+                last_role = item['role']
+            messages.append({
+                'content': '\n'.join(msg_buffer),
+                'role': last_role
+            })
 
-                messages.append(msg)
+        if self.system_prompt:
+            system = {'role': 'system', 'content': self.system_prompt}
+            messages.insert(0, system)
 
         data = {'model': self.model, 'messages': messages}
-        data.update(self.generation_kwargs)
-
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + self.api_key,
-        }
 
         max_num_retries = 0
         while max_num_retries < self.retry:
@@ -126,17 +127,20 @@ class BaiChuan(BaseAPIModel):
             try:
                 raw_response = requests.request('POST',
                                                 url=self.url,
-                                                headers=headers,
+                                                headers=self.headers,
                                                 json=data)
-                response = raw_response.json()
             except Exception as err:
                 print('Request Error:{}'.format(err))
-                time.sleep(3)
+                time.sleep(2)
                 continue
 
+            try:
+                response = raw_response.json()
+            except Exception as err:
+                print('Response Error:{}'.format(err))
+                response = None
             self.release()
-            # print(response.keys())
-            # print(response['choices'][0]['message']['content'])
+
             if response is None:
                 print('Connection error, reconnect.')
                 # if connect error, frequent requests will casuse
@@ -144,16 +148,32 @@ class BaiChuan(BaseAPIModel):
                 # to slow down the request
                 self.wait()
                 continue
-            if raw_response.status_code == 200:
 
+            if raw_response.status_code == 200:
+                # msg = json.load(response.text)
+                # response
                 msg = response['choices'][0]['message']['content']
+                self.logger.debug(f'Generated: {msg}')
                 return msg
 
-            if raw_response.status_code != 200:
-                print(raw_response.json())
-                time.sleep(1)
+            if raw_response.status_code == 401:
+                print('请求被拒绝 api_key错误')
                 continue
-            print(response)
+            elif raw_response.status_code == 400:
+                print(messages, response)
+                print('请求失败，状态码:', raw_response)
+                msg = 'The request was rejected because high risk'
+                return msg
+            elif raw_response.status_code == 429:
+                print(messages, response)
+                print('请求失败，状态码:', raw_response)
+                time.sleep(5)
+                continue
+            else:
+                print(messages, response)
+                print('请求失败，状态码:', raw_response)
+                time.sleep(1)
+
             max_num_retries += 1
 
-        raise RuntimeError(response)
+        raise RuntimeError(raw_response)

@@ -1,12 +1,17 @@
 import ast
 import json
 
-import networkx as nx
+try:
+    import networkx as nx
+except ImportError:
+    nx = None
+
 import pandas as pd
 from datasets import Dataset
 
 from opencompass.openicl.icl_evaluator import BaseEvaluator
 from opencompass.registry import ICL_EVALUATORS, LOAD_DATASET
+from opencompass.utils import get_data_path
 
 from ..base import BaseDataset
 from .prompts import tsp_dPrompts
@@ -29,10 +34,11 @@ def q2text(adj_matrix, distance_limit, p=tsp_dPrompts):
 
 
 @LOAD_DATASET.register_module(force=True)
-class cmp_TSP_D_Dataset(BaseDataset):
+class CMP_TSP_D_Dataset(BaseDataset):
 
     @staticmethod
     def load(path: str):
+        path = get_data_path(path, local_mode=True)
         raw_data = []
         data_path = path
         all_data = []
@@ -58,7 +64,7 @@ class cmp_TSP_D_Dataset(BaseDataset):
 
 
 @ICL_EVALUATORS.register_module(force=True)
-class cmp_TSP_D_Evaluator(BaseEvaluator):
+class CMP_TSP_D_Evaluator(BaseEvaluator):
 
     def score(self, predictions, references):
         assert len(predictions) == len(references)

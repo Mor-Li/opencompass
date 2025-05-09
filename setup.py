@@ -7,6 +7,7 @@ class DownloadNLTK(install):
     def run(self):
         self.do_egg_install()
         import nltk
+
         nltk.download('punkt')
 
 
@@ -33,6 +34,7 @@ def parse_requirements(fname='requirements.txt', with_version=True):
     import re
     import sys
     from os.path import exists
+
     require_fpath = fname
 
     def parse_line(line):
@@ -103,39 +105,59 @@ def get_version():
 
 
 def do_setup():
-    setup(name='opencompass',
-          author='OpenCompass Contributors',
-          version=get_version(),
-          description='A comprehensive toolkit for large model evaluation',
-          url='https://github.com/open-compass/opencompass',
-          long_description=readme(),
-          long_description_content_type='text/markdown',
-          maintainer='OpenCompass Authors',
-          cmdclass={'download_nltk': DownloadNLTK},
-          setup_requires=['nltk==3.8'],
-          python_requires='>=3.8.0',
-          install_requires=parse_requirements('requirements/runtime.txt'),
-          license='Apache License 2.0',
-          packages=find_packages(exclude=[
-              'test*',
-              'configs',
-              'data',
-              'docs',
-              'tools',
-              'tmp',
-          ]),
-          keywords=[
-              'AI', 'NLP', 'in-context learning', 'large language model',
-              'evaluation', 'benchmark', 'llm'
-          ],
-          classifiers=[
-              'Programming Language :: Python :: 3.8',
-              'Programming Language :: Python :: 3.9',
-              'Programming Language :: Python :: 3.10',
-              'Intended Audience :: Developers',
-              'Intended Audience :: Education',
-              'Intended Audience :: Science/Research',
-          ])
+    setup(
+        name='opencompass',
+        author='OpenCompass Contributors',
+        version=get_version(),
+        description='A comprehensive toolkit for large model evaluation',
+        url='https://github.com/open-compass/opencompass',
+        long_description=readme(),
+        long_description_content_type='text/markdown',
+        maintainer='OpenCompass Authors',
+        cmdclass={'download_nltk': DownloadNLTK},
+        setup_requires=['nltk==3.8'],
+        python_requires='>=3.8.0',
+        install_requires=parse_requirements('requirements/runtime.txt'),
+        extras_require={
+            'lmdeploy':
+            parse_requirements('requirements/lmdeploy.txt') +
+            parse_requirements('requirements/runtime.txt'),
+            'vllm':
+            parse_requirements('requirements/vllm.txt') +
+            parse_requirements('requirements/runtime.txt'),
+            'api':
+            parse_requirements('requirements/api.txt') +
+            parse_requirements('requirements/runtime.txt'),
+            'full':
+            parse_requirements('requirements/extra.txt') +
+            parse_requirements('requirements/runtime.txt'),
+        },
+        license='Apache License 2.0',
+        include_package_data=True,
+        packages=find_packages(),
+        keywords=[
+            'AI',
+            'NLP',
+            'in-context learning',
+            'large language model',
+            'evaluation',
+            'benchmark',
+            'llm',
+        ],
+        classifiers=[
+            'Programming Language :: Python :: 3.8',
+            'Programming Language :: Python :: 3.9',
+            'Programming Language :: Python :: 3.10',
+            'Intended Audience :: Developers',
+            'Intended Audience :: Education',
+            'Intended Audience :: Science/Research',
+        ],
+        entry_points={
+            'console_scripts': [
+                'opencompass = opencompass.cli.main:main',
+            ],
+        },
+    )
 
 
 if __name__ == '__main__':

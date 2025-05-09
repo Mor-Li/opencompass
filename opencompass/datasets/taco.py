@@ -18,11 +18,16 @@ from io import StringIO
 from unittest.mock import mock_open, patch
 
 import numpy as np
-from datasets import Dataset, DatasetDict, load_dataset
-from pyext import RuntimeModule
+from datasets import Dataset, DatasetDict, load_from_disk
+
+try:
+    from pyext import RuntimeModule
+except ImportError:
+    RuntimeModule = None
 
 from opencompass.openicl.icl_evaluator import BaseEvaluator
 from opencompass.registry import ICL_EVALUATORS, LOAD_DATASET
+from opencompass.utils import get_data_path
 
 from .base import BaseDataset
 
@@ -33,13 +38,17 @@ TIMEOUT = 10
 class TACODataset(BaseDataset):
 
     @staticmethod
-    def load(path: str, num_repeats: int = 1):
-        dataset = load_dataset(path)
+    def load(path: str, num_repeats: int = 1, difficulty='ALL'):
+        path = get_data_path(path, local_mode=True)
+        dataset = load_from_disk(path)
         new_dataset = DatasetDict()
         # add new column "starter" in the prompt
         for split in dataset.keys():
             new_samples = []
             for idx, sample in enumerate(dataset[split]):
+                if 'ALL' not in difficulty:
+                    if not sample['difficulty'] == difficulty:
+                        continue
                 starter_code = None if len(
                     sample['starter_code']) == 0 else sample['starter_code']
                 try:
@@ -67,20 +76,20 @@ class TACODataset(BaseDataset):
                 for key in new_samples[0].keys()
             }
             new_dataset[split] = Dataset.from_dict(new_data)
-
         # num_repeats duplicate
-        train_repeated = []
+        # train_repeated = []
         test_repeated = []
-        for sample in new_dataset['train']:
-            train_repeated.extend([sample] * num_repeats)
+        # for sample in new_dataset['train']:
+        #     train_repeated.extend([sample] * num_repeats)
         for sample in new_dataset['test']:
             test_repeated.extend([sample] * num_repeats)
 
-        dataset_train_repeated = new_dataset['train'].from_list(train_repeated)
+        # dataset_train_repeated = new_dataset['train'].from_list(
+        #     train_repeated
+        # )
         dataset_test_repeated = new_dataset['test'].from_list(test_repeated)
-
         return DatasetDict({
-            'train': dataset_train_repeated,
+            # 'train': dataset_train_repeated,
             'test': dataset_test_repeated
         })
 
@@ -91,14 +100,16 @@ EOF_STRINGS = ['\nQUESTION', '\n---', '\nANSWER', '<|endoftext|>']
 @ICL_EVALUATORS.register_module()
 class TACOEvaluator(BaseEvaluator):
 
-    def truncate_after_eof_strings(self, text):
-        pattern = '|'.join(re.escape(s) for s in EOF_STRINGS)
-        match = re.search(pattern, text)
-
-        if match:
-            return text[:match.start()]
-        else:
-            return text
+    def post_process(self, text):
+        if '```' in text:
+            blocks = re.findall(r'```(.*?)```', text, re.DOTALL)
+            if len(blocks) == 0:
+                text = text.split('```')[1]  # fall back to default strategy
+            else:
+                text = blocks[0]  # fetch the first code block
+                if not text.startswith('\n'):  # starting with ```python
+                    text = text[max(text.find('\n') + 1, 0):]
+        return text
 
     TIMEOUT = 10
 
@@ -225,10 +236,11 @@ class TACOEvaluator(BaseEvaluator):
         return pass_at_k
 
     def score(self, predictions, references, test_set):
-        assert len(predictions) == len(references)
+        if len(predictions) != len(references):
+            return {'error': 'preds and refrs have different length'}
         generations = defaultdict(list)
         for refer, pred in zip(references, predictions):
-            pred = self.truncate_after_eof_strings(pred)
+            pred = self.post_process(pred)
             generations[refer].append(pred)
         # convert to non-duplicated version
         test_set = test_set.to_pandas()
@@ -254,7 +266,10 @@ def timeout_handler(signum, frame):
     raise TimeoutException
 
 
-signal.signal(signal.SIGALRM, timeout_handler)
+try:
+    signal.signal(signal.SIGALRM, timeout_handler)
+except AttributeError:
+    print('signal.SIGALRM is not available on this platform')
 timeout = 4  # seconds
 
 

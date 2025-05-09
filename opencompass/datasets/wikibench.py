@@ -4,6 +4,7 @@ import json
 from datasets import Dataset
 
 from opencompass.registry import LOAD_DATASET
+from opencompass.utils import get_data_path
 
 from .base import BaseDataset
 
@@ -20,7 +21,9 @@ def get_number(options):
 class WikiBenchDataset(BaseDataset):
 
     @staticmethod
-    def load(path: str, name: str):
+    def load(path: str, filename: str, name: str):
+        path = get_data_path(path)
+        path = path + filename
 
         circular_patterns = ['ABCD', 'BCDA', 'CDAB', 'DABC']
 
