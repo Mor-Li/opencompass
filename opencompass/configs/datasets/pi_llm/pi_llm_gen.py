@@ -92,5 +92,49 @@ pi_llm_test3_datasets = [
     )
 ]
 
+# Test 4: Varying item lengths
+pi_llm_test4_datasets = [
+    dict(
+        abbr='pi_llm_test4',
+        type=PILLMDataset,
+        path='data/pi_llm/dict_category_double-word_46-400_v1-1.json',
+        source_dict_path='data/pi_llm/dict_category_double-word_46-400_v1-1.json',
+        n_tracked_keys=[46],
+        n_tracked_updates=[4, 20],
+        n_untracked_keys=0,
+        n_untracked_updates=0,
+        random_update=1,
+        prompt_updating='colon',
+        prompt_forgetting='none',
+        len_item=[1, 2, 3, 4, 6, 10, 16, 25, 40],  # Test different item lengths
+        len_item_style='cap-strip',
+        n_samples_per_config=10,
+        reader_cfg=pi_llm_reader_cfg,
+        infer_cfg=pi_llm_infer_cfg,
+        eval_cfg=pi_llm_eval_cfg
+    )
+]
+
+# Test 5: Non-random updates (sequential)
+pi_llm_test5_datasets = [
+    dict(
+        abbr='pi_llm_test5',
+        type=PILLMDataset,
+        path='data/pi_llm/dict_category_double-word_46-400_v1-1.json',
+        source_dict_path='data/pi_llm/dict_category_double-word_46-400_v1-1.json',
+        n_tracked_keys=[46],
+        n_tracked_updates=[2, 3, 4, 6, 8, 12, 17, 24, 34, 48, 68, 97, 139, 197, 281, 400],
+        n_untracked_keys=0,
+        n_untracked_updates=0,
+        random_update=[0],  # Sequential updates instead of random
+        prompt_updating='colon',
+        prompt_forgetting='none',
+        n_samples_per_config=10,
+        reader_cfg=pi_llm_reader_cfg,
+        infer_cfg=pi_llm_infer_cfg,
+        eval_cfg=pi_llm_eval_cfg
+    )
+]
+
 # Combined dataset list (for running all tests)
-pi_llm_datasets = pi_llm_test1_datasets + pi_llm_test2_datasets + pi_llm_test3_datasets
+pi_llm_datasets = pi_llm_test1_datasets + pi_llm_test2_datasets + pi_llm_test3_datasets + pi_llm_test4_datasets + pi_llm_test5_datasets

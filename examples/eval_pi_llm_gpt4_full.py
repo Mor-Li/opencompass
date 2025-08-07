@@ -11,7 +11,7 @@ with read_base():
 
 # Define the summarizer for PI-LLM evaluation
 summarizer = dict(
-    dataset_abbrs=['pi_llm_test1', 'pi_llm_test2', 'pi_llm_test3'],
+    dataset_abbrs=['pi_llm_test1', 'pi_llm_test2', 'pi_llm_test3', 'pi_llm_test4', 'pi_llm_test5'],
     summary_groups=[
         {
             'name': 'pi_llm_test1_updates',
@@ -26,8 +26,16 @@ summarizer = dict(
             'subsets': ['pi_llm_test3'],
         },
         {
+            'name': 'pi_llm_test4_itemlen',
+            'subsets': ['pi_llm_test4'],
+        },
+        {
+            'name': 'pi_llm_test5_sequential',
+            'subsets': ['pi_llm_test5'],
+        },
+        {
             'name': 'pi_llm_overall',
-            'subsets': ['pi_llm_test1', 'pi_llm_test2', 'pi_llm_test3'],
+            'subsets': ['pi_llm_test1', 'pi_llm_test2', 'pi_llm_test3', 'pi_llm_test4', 'pi_llm_test5'],
         }
     ],
 )

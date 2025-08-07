@@ -1,8 +1,7 @@
 import json
-import os
 import random
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from datasets import Dataset
 
@@ -31,7 +30,9 @@ class PILLMDataset(BaseDataset):
              prompt_updating: str = "colon",
              prompt_forgetting: str = "none",
              n_samples_per_config: int = 10,
-             seed: int = 42):
+             seed: int = 42,
+             len_item: List[int] = None,
+             len_item_style: str = "cap-strip"):
         """Load PI-LLM dataset with various configurations.
         
         Args:
@@ -44,7 +45,8 @@ class PILLMDataset(BaseDataset):
             prompt_updating: Update prompt format ("colon", "equal", etc.)
             prompt_forgetting: Forgetting prompt format
             n_samples_per_config: Number of samples per configuration
-            seed: Random seed for reproducibility
+            len_item: List of item lengths to test (for test4)
+            len_item_style: Style for lengthening items ("cap-strip" for test4)
         """
         random.seed(seed)
         
@@ -55,15 +57,34 @@ class PILLMDataset(BaseDataset):
         
         # Generate test samples
         samples = []
-        for n_keys in n_tracked_keys:
-            for n_updates in n_tracked_updates:
+        
+        # Handle different test configurations
+        if len_item is not None:
+            # Test 4: Item length variations
+            for item_len in len_item:
                 for _ in range(n_samples_per_config):
                     sample = PILLMDataset._generate_sample(
-                        source_dict, n_keys, n_updates,
+                        source_dict, n_tracked_keys[0] if isinstance(n_tracked_keys, list) else n_tracked_keys,
+                        n_tracked_updates[0] if isinstance(n_tracked_updates, list) else n_tracked_updates,
                         n_untracked_keys, n_untracked_updates,
-                        random_update, prompt_updating, prompt_forgetting
+                        random_update, prompt_updating, prompt_forgetting,
+                        item_length=item_len, len_item_style=len_item_style
                     )
                     samples.append(sample)
+        else:
+            # Test 1, 2, 3, 5: Regular configurations
+            for n_keys in n_tracked_keys:
+                for n_updates in n_tracked_updates:
+                    # Handle test5: random_update can be a list
+                    random_update_values = [random_update] if not isinstance(random_update, list) else random_update
+                    for ru_value in random_update_values:
+                        for _ in range(n_samples_per_config):
+                            sample = PILLMDataset._generate_sample(
+                                source_dict, n_keys, n_updates,
+                                n_untracked_keys, n_untracked_updates,
+                                ru_value, prompt_updating, prompt_forgetting
+                            )
+                            samples.append(sample)
         
         # Create dataset
         dataset = Dataset.from_list(samples)
@@ -77,7 +98,9 @@ class PILLMDataset(BaseDataset):
                         n_untracked_updates: int,
                         random_update: int,
                         prompt_updating: str,
-                        prompt_forgetting: str) -> Dict:
+                        prompt_forgetting: str,
+                        item_length: int = None,
+                        len_item_style: str = "cap-strip") -> Dict:
         """Generate a single PI-LLM sample."""
         
         # Sample categories and items
@@ -92,6 +115,11 @@ class PILLMDataset(BaseDataset):
             if len(items) >= 2:  # Need at least 2 items for updates
                 key = cat
                 value = random.choice(items)
+                
+                # Apply item length modification if needed (test4)
+                if item_length is not None and len_item_style == "cap-strip":
+                    value = PILLMDataset._lengthen_item(value, item_length)
+                
                 tracked_keys.append(key)
                 initial_values[key] = value
         
@@ -115,6 +143,11 @@ class PILLMDataset(BaseDataset):
             available_items = [item for item in category_items if item != current_values[key]]
             if available_items:
                 new_value = random.choice(available_items)
+                
+                # Apply item length modification if needed (test4)
+                if item_length is not None and len_item_style == "cap-strip":
+                    new_value = PILLMDataset._lengthen_item(new_value, item_length)
+                
                 current_values[key] = new_value
                 
                 # Format update based on prompt_updating
@@ -150,6 +183,22 @@ class PILLMDataset(BaseDataset):
             "n_tracked_keys": n_tracked_keys,
             "n_tracked_updates": len(updates)
         }
+
+    @staticmethod
+    def _lengthen_item(item: str, target_length: int) -> str:
+        """Lengthen item using cap-strip method (capitalize first letter and repeat)."""
+        if len(item) >= target_length:
+            return item[:target_length]
+        
+        # Capitalize first letter
+        item_cap = item[0].upper() + item[1:] if len(item) > 0 else item
+        
+        # Repeat the capitalized version to reach target length
+        result = item_cap
+        while len(result) < target_length:
+            result += item_cap
+        
+        return result[:target_length]
 
 
 @TEXT_POSTPROCESSORS.register_module('pi_llm')
