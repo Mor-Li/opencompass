@@ -5,7 +5,7 @@ from opencompass.datasets import PILLMDataset, pi_llm_postprocess, PILLMEvaluato
 
 # Basic configuration for PI-LLM dataset
 pi_llm_reader_cfg = dict(
-    input_columns=['instruction', 'input'],
+    input_columns=['instruction'],  # Only instruction column now
     output_column='output'
 )
 
@@ -15,7 +15,7 @@ pi_llm_infer_cfg = dict(
         type=PromptTemplate,
         template=dict(
             round=[
-                dict(role='HUMAN', prompt='{instruction}\n{input}'),
+                dict(role='HUMAN', prompt='{instruction}'),  # Only instruction, no input
             ],
         )
     ),

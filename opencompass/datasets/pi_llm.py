@@ -160,21 +160,48 @@ class PILLMDataset(BaseDataset):
                 
                 updates.append(update_str)
         
-        # Build prompt
-        instruction = f"Track the values of these keys: {', '.join(tracked_keys)}. "
-        instruction += f"Initial values - " + ", ".join([f"{k}: {v}" for k, v in initial_values.items()]) + ".\n\n"
+        # Build prompt in Unable-to-Forget format
+        str_tracked_keys = ', '.join(tracked_keys)
+        n_actually_tracked_keys = len(tracked_keys)
         
+        # Instruction (UTF format)
+        instruction = f"As my secretary, I need you to carefully read a text stream where the values of multiple keys are being continuously updated."
+        instruction += f"The {n_actually_tracked_keys} keys to track include {str_tracked_keys}. I will ask you to identify the value of each key later."
+        
+        # Update stream
         if updates:
-            instruction += "Updates:\n" + "\n".join(updates) + "\n\n"
+            # UTF format with "The text stream starts on the next line."
+            update_stream = "The text stream starts on the next line.\n "
+            
+            # Format updates based on prompt_updating
+            formatted_updates = []
+            for update in updates:
+                # Add newline separator between updates
+                formatted_updates.append(update + "\n")
+            
+            # Join updates and remove trailing newline
+            update_stream += "".join(formatted_updates).rstrip()
+            
+            instruction = f"{instruction}\n\n{update_stream}"
         
-        question = "What are the current values of all tracked keys?"
+        # Question (UTF format)
+        probe_target = "current"  # UTF uses "current" as probe target
+        question = f"What are the {probe_target} value of each key ({str_tracked_keys}) you are tracking? "
+        
+        # Response format instruction (UTF uses "redundant" style by default)
+        question += f"End your response with: "
+        question += f"'The {probe_target} value of <key> is <value>.'"
+        question += f"Ensure that you report each key exactly once in this manner. "
+        
+        # Full prompt
+        full_prompt = f"{instruction}\n\n{question}"
         
         # Build reference answer
         reference = current_values
         
         return {
-            "instruction": instruction,
-            "input": question,
+            "instruction": full_prompt,  # Full prompt is stored as instruction
+            "input": "",  # Empty input since everything is in instruction
             "output": json.dumps(reference),  # Store as JSON string
             "tracked_keys": tracked_keys,
             "initial_values": initial_values,
