@@ -15,7 +15,7 @@ from .base import BaseDataset
 @LOAD_DATASET.register_module()
 class PILLMDataset(BaseDataset):
     """PI-LLM (Probing and Intervention on LLM) Dataset.
-    
+
     This dataset tests model's ability to track and update key-value pairs
     through a series of updates, then probe for current values.
     """
@@ -36,7 +36,7 @@ class PILLMDataset(BaseDataset):
              len_item: List[int] = None,
              len_item_style: str = 'cap-strip'):
         """Load PI-LLM dataset with various configurations.
-        
+
         Args:
             source_dict_path: Path to source dictionary JSON file
             n_tracked_keys: List of number of tracked keys to test
@@ -58,7 +58,7 @@ class PILLMDataset(BaseDataset):
                 source_dict_path = get_data_path(source_dict_path)
                 with open(source_dict_path, 'r') as f:
                     source_dict = json.load(f)
-            except:
+            except Exception:
                 # Fall back to creating a default source dictionary
                 source_dict = {f'key{i}': f'key{i}' for i in range(1, 201)}
         else:
@@ -186,8 +186,12 @@ class PILLMDataset(BaseDataset):
         n_actually_tracked_keys = len(tracked_keys)
 
         # Instruction (UTF format)
-        instruction = f'As my secretary, I need you to carefully read a text stream where the values of multiple keys are being continuously updated.'
-        instruction += f'The {n_actually_tracked_keys} keys to track include {str_tracked_keys}. I will ask you to identify the value of each key later.'
+        instruction = ('As my secretary, I need you to carefully read a text '
+                       'stream where the values of multiple keys are being '
+                       'continuously updated.')
+        instruction += (f'The {n_actually_tracked_keys} keys to track include '
+                        f'{str_tracked_keys}. I will ask you to identify the '
+                        f'value of each key later.')
 
         # Update stream
         if updates:
@@ -207,12 +211,14 @@ class PILLMDataset(BaseDataset):
 
         # Question (UTF format)
         probe_target = 'current'  # UTF uses "current" as probe target
-        question = f'What are the {probe_target} value of each key ({str_tracked_keys}) you are tracking? '
+        question = (f'What are the {probe_target} value of each key '
+                    f'({str_tracked_keys}) you are tracking? ')
 
         # Response format instruction (UTF uses "redundant" style by default)
-        question += f'End your response with: '
+        question += 'End your response with: '
         question += f"'The {probe_target} value of <key> is <value>.'"
-        question += f'Ensure that you report each key exactly once in this manner. '
+        question += ('Ensure that you report each key exactly once in this '
+                     'manner. ')
 
         # Full prompt
         full_prompt = f'{instruction}\n\n{question}'
@@ -234,7 +240,10 @@ class PILLMDataset(BaseDataset):
 
     @staticmethod
     def _lengthen_item(item: str, target_length: int) -> str:
-        """Lengthen item using cap-strip method (capitalize first letter and repeat)."""
+        """Lengthen item using cap-strip method.
+
+        Capitalize first letter and repeat.
+        """
         if len(item) >= target_length:
             return item[:target_length]
 
@@ -259,7 +268,7 @@ def pi_llm_postprocess(text: str) -> Dict[str, str]:
         json_match = re.search(r'\{[^}]+\}', text)
         if json_match:
             return json.loads(json_match.group())
-    except:
+    except Exception:
         pass
 
     # Parse verbal format
@@ -287,11 +296,11 @@ class PILLMEvaluator(BaseEvaluator):
 
     def score(self, predictions: List[str], references: List[str]) -> Dict:
         """Calculate accuracy of key-value tracking.
-        
+
         Args:
             predictions: List of model outputs (already postprocessed to dicts)
             references: List of ground truth dicts (as JSON strings)
-        
+
         Returns:
             Dictionary with accuracy metrics
         """
