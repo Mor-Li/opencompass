@@ -23,16 +23,18 @@ class PILLMDataset(BaseDataset):
     @staticmethod
     def load(source_dict_path: str,
              n_tracked_keys: List[int] = [46],
-             n_tracked_updates: List[int] = [2, 3, 4, 6, 8, 12, 17, 24, 34, 48, 68, 97, 139, 197, 281, 400],
+             n_tracked_updates: List[int] = [
+                 2, 3, 4, 6, 8, 12, 17, 24, 34, 48, 68, 97, 139, 197, 281, 400
+             ],
              n_untracked_keys: int = 0,
              n_untracked_updates: int = 0,
              random_update: int = 1,
-             prompt_updating: str = "colon",
-             prompt_forgetting: str = "none",
+             prompt_updating: str = 'colon',
+             prompt_forgetting: str = 'none',
              n_samples_per_config: int = 10,
              seed: int = 42,
              len_item: List[int] = None,
-             len_item_style: str = "cap-strip"):
+             len_item_style: str = 'cap-strip'):
         """Load PI-LLM dataset with various configurations.
         
         Args:
@@ -49,7 +51,7 @@ class PILLMDataset(BaseDataset):
             len_item_style: Style for lengthening items ("cap-strip" for test4)
         """
         random.seed(seed)
-        
+
         # Load source dictionary
         if source_dict_path and source_dict_path != '':
             try:
@@ -58,63 +60,71 @@ class PILLMDataset(BaseDataset):
                     source_dict = json.load(f)
             except:
                 # Fall back to creating a default source dictionary
-                source_dict = {f"key{i}": f"key{i}" for i in range(1, 201)}
+                source_dict = {f'key{i}': f'key{i}' for i in range(1, 201)}
         else:
             # Create a default source dictionary
-            source_dict = {f"key{i}": f"key{i}" for i in range(1, 201)}
-        
+            source_dict = {f'key{i}': f'key{i}' for i in range(1, 201)}
+
         # Generate test samples
         samples = []
-        
+
         # Handle different test configurations
         if len_item is not None:
             # Test 4: Item length variations
             for item_len in len_item:
                 for _ in range(n_samples_per_config):
                     sample = PILLMDataset._generate_sample(
-                        source_dict, n_tracked_keys[0] if isinstance(n_tracked_keys, list) else n_tracked_keys,
-                        n_tracked_updates[0] if isinstance(n_tracked_updates, list) else n_tracked_updates,
-                        n_untracked_keys, n_untracked_updates,
-                        random_update, prompt_updating, prompt_forgetting,
-                        item_length=item_len, len_item_style=len_item_style
-                    )
+                        source_dict,
+                        n_tracked_keys[0] if isinstance(
+                            n_tracked_keys, list) else n_tracked_keys,
+                        n_tracked_updates[0] if isinstance(
+                            n_tracked_updates, list) else n_tracked_updates,
+                        n_untracked_keys,
+                        n_untracked_updates,
+                        random_update,
+                        prompt_updating,
+                        prompt_forgetting,
+                        item_length=item_len,
+                        len_item_style=len_item_style)
                     samples.append(sample)
         else:
             # Test 1, 2, 3, 5: Regular configurations
             for n_keys in n_tracked_keys:
                 for n_updates in n_tracked_updates:
                     # Handle test5: random_update can be a list
-                    random_update_values = [random_update] if not isinstance(random_update, list) else random_update
+                    random_update_values = [
+                        random_update
+                    ] if not isinstance(random_update, list) else random_update
                     for ru_value in random_update_values:
                         for _ in range(n_samples_per_config):
                             sample = PILLMDataset._generate_sample(
                                 source_dict, n_keys, n_updates,
                                 n_untracked_keys, n_untracked_updates,
-                                ru_value, prompt_updating, prompt_forgetting
-                            )
+                                ru_value, prompt_updating, prompt_forgetting)
                             samples.append(sample)
-        
+
         # Create dataset
         dataset = Dataset.from_list(samples)
         return dataset
 
     @staticmethod
     def _generate_sample(source_dict: Dict[str, List[str]],
-                        n_tracked_keys: int,
-                        n_tracked_updates: int,
-                        n_untracked_keys: int,
-                        n_untracked_updates: int,
-                        random_update: int,
-                        prompt_updating: str,
-                        prompt_forgetting: str,
-                        item_length: int = None,
-                        len_item_style: str = "cap-strip") -> Dict:
+                         n_tracked_keys: int,
+                         n_tracked_updates: int,
+                         n_untracked_keys: int,
+                         n_untracked_updates: int,
+                         random_update: int,
+                         prompt_updating: str,
+                         prompt_forgetting: str,
+                         item_length: int = None,
+                         len_item_style: str = 'cap-strip') -> Dict:
         """Generate a single PI-LLM sample."""
-        
+
         # Sample categories and items
         categories = list(source_dict.keys())
-        tracked_categories = random.sample(categories, min(n_tracked_keys, len(categories)))
-        
+        tracked_categories = random.sample(
+            categories, min(n_tracked_keys, len(categories)))
+
         # Initialize key-value pairs
         tracked_keys = []
         initial_values = {}
@@ -123,100 +133,103 @@ class PILLMDataset(BaseDataset):
             if len(items) >= 2:  # Need at least 2 items for updates
                 key = cat
                 value = random.choice(items)
-                
+
                 # Apply item length modification if needed (test4)
-                if item_length is not None and len_item_style == "cap-strip":
+                if item_length is not None and len_item_style == 'cap-strip':
                     value = PILLMDataset._lengthen_item(value, item_length)
-                
+
                 tracked_keys.append(key)
                 initial_values[key] = value
-        
+
         # Limit to requested number of keys
         tracked_keys = tracked_keys[:n_tracked_keys]
         initial_values = {k: initial_values[k] for k in tracked_keys}
-        
+
         # Generate update stream
         updates = []
         current_values = initial_values.copy()
-        
+
         for _ in range(n_tracked_updates):
             if random_update:
                 key = random.choice(tracked_keys)
             else:
                 # Sequential updates
                 key = tracked_keys[len(updates) % len(tracked_keys)]
-            
+
             # Get new value different from current
             category_items = source_dict[key]
-            available_items = [item for item in category_items if item != current_values[key]]
+            available_items = [
+                item for item in category_items if item != current_values[key]
+            ]
             if available_items:
                 new_value = random.choice(available_items)
-                
+
                 # Apply item length modification if needed (test4)
-                if item_length is not None and len_item_style == "cap-strip":
-                    new_value = PILLMDataset._lengthen_item(new_value, item_length)
-                
+                if item_length is not None and len_item_style == 'cap-strip':
+                    new_value = PILLMDataset._lengthen_item(
+                        new_value, item_length)
+
                 current_values[key] = new_value
-                
+
                 # Format update based on prompt_updating
-                if prompt_updating == "colon":
-                    update_str = f"{key}: {new_value}"
-                elif prompt_updating == "equal":
-                    update_str = f"{key} = {new_value}"
+                if prompt_updating == 'colon':
+                    update_str = f'{key}: {new_value}'
+                elif prompt_updating == 'equal':
+                    update_str = f'{key} = {new_value}'
                 else:
-                    update_str = f"{key}: {new_value}"
-                
+                    update_str = f'{key}: {new_value}'
+
                 updates.append(update_str)
-        
+
         # Build prompt in Unable-to-Forget format
         str_tracked_keys = ', '.join(tracked_keys)
         n_actually_tracked_keys = len(tracked_keys)
-        
+
         # Instruction (UTF format)
-        instruction = f"As my secretary, I need you to carefully read a text stream where the values of multiple keys are being continuously updated."
-        instruction += f"The {n_actually_tracked_keys} keys to track include {str_tracked_keys}. I will ask you to identify the value of each key later."
-        
+        instruction = f'As my secretary, I need you to carefully read a text stream where the values of multiple keys are being continuously updated.'
+        instruction += f'The {n_actually_tracked_keys} keys to track include {str_tracked_keys}. I will ask you to identify the value of each key later.'
+
         # Update stream
         if updates:
             # UTF format with "The text stream starts on the next line."
-            update_stream = "The text stream starts on the next line.\n "
-            
+            update_stream = 'The text stream starts on the next line.\n '
+
             # Format updates based on prompt_updating
             formatted_updates = []
             for update in updates:
                 # Add newline separator between updates
-                formatted_updates.append(update + "\n")
-            
+                formatted_updates.append(update + '\n')
+
             # Join updates and remove trailing newline
-            update_stream += "".join(formatted_updates).rstrip()
-            
-            instruction = f"{instruction}\n\n{update_stream}"
-        
+            update_stream += ''.join(formatted_updates).rstrip()
+
+            instruction = f'{instruction}\n\n{update_stream}'
+
         # Question (UTF format)
-        probe_target = "current"  # UTF uses "current" as probe target
-        question = f"What are the {probe_target} value of each key ({str_tracked_keys}) you are tracking? "
-        
+        probe_target = 'current'  # UTF uses "current" as probe target
+        question = f'What are the {probe_target} value of each key ({str_tracked_keys}) you are tracking? '
+
         # Response format instruction (UTF uses "redundant" style by default)
-        question += f"End your response with: "
+        question += f'End your response with: '
         question += f"'The {probe_target} value of <key> is <value>.'"
-        question += f"Ensure that you report each key exactly once in this manner. "
-        
+        question += f'Ensure that you report each key exactly once in this manner. '
+
         # Full prompt
-        full_prompt = f"{instruction}\n\n{question}"
-        
+        full_prompt = f'{instruction}\n\n{question}'
+
         # Build reference answer
         reference = current_values
-        
+
         return {
-            "instruction": full_prompt,  # Full prompt is stored as instruction
-            "input": "",  # Empty input since everything is in instruction
-            "output": json.dumps(reference),  # Store as JSON string
-            "tracked_keys": tracked_keys,
-            "initial_values": initial_values,
-            "updates": updates,
-            "current_values": reference,
-            "n_tracked_keys": n_tracked_keys,
-            "n_tracked_updates": len(updates)
+            'instruction': full_prompt,  # Full prompt is stored as instruction
+            'input': '',  # Empty input since everything is in instruction
+            'output': json.dumps(reference),  # Store as JSON string
+            'tracked_keys': tracked_keys,
+            'initial_values': initial_values,
+            'updates': updates,
+            'current_values': reference,
+            'n_tracked_keys': n_tracked_keys,
+            'n_tracked_updates': len(updates)
         }
 
     @staticmethod
@@ -224,22 +237,22 @@ class PILLMDataset(BaseDataset):
         """Lengthen item using cap-strip method (capitalize first letter and repeat)."""
         if len(item) >= target_length:
             return item[:target_length]
-        
+
         # Capitalize first letter
         item_cap = item[0].upper() + item[1:] if len(item) > 0 else item
-        
+
         # Repeat the capitalized version to reach target length
         result = item_cap
         while len(result) < target_length:
             result += item_cap
-        
+
         return result[:target_length]
 
 
 @TEXT_POSTPROCESSORS.register_module('pi_llm')
 def pi_llm_postprocess(text: str) -> Dict[str, str]:
     """Extract key-value pairs from model response."""
-    
+
     # Try to parse as JSON first
     try:
         # Look for JSON-like structure
@@ -248,30 +261,30 @@ def pi_llm_postprocess(text: str) -> Dict[str, str]:
             return json.loads(json_match.group())
     except:
         pass
-    
+
     # Parse verbal format
     result = {}
-    
+
     # Pattern 1: "The current value of X is Y"
-    pattern1 = r"(?:The )?current value of (\w+) is ([^.,;]+)"
+    pattern1 = r'(?:The )?current value of (\w+) is ([^.,;]+)'
     matches1 = re.findall(pattern1, text, re.IGNORECASE)
     for key, value in matches1:
         result[key.strip()] = value.strip()
-    
+
     # Pattern 2: "X: Y" or "X = Y"
-    pattern2 = r"(\w+)\s*[:=]\s*([^,\n;]+)"
+    pattern2 = r'(\w+)\s*[:=]\s*([^,\n;]+)'
     matches2 = re.findall(pattern2, text)
     for key, value in matches2:
         # Avoid overwriting if already found
         if key.strip() not in result:
             result[key.strip()] = value.strip()
-    
+
     return result
 
 
 class PILLMEvaluator(BaseEvaluator):
     """Evaluator for PI-LLM dataset."""
-    
+
     def score(self, predictions: List[str], references: List[str]) -> Dict:
         """Calculate accuracy of key-value tracking.
         
@@ -286,46 +299,46 @@ class PILLMEvaluator(BaseEvaluator):
             return {
                 'error': 'predictions and references have different length'
             }
-        
+
         total_correct = 0
         total_keys = 0
         total_missing = 0
         details = []
-        
+
         for pred, ref_str in zip(predictions, references):
             # Parse reference if it's a string
             if isinstance(ref_str, str):
                 ref = json.loads(ref_str)
             else:
                 ref = ref_str
-            
+
             # Ensure pred is a dict
             if isinstance(pred, str):
                 pred_dict = pi_llm_postprocess(pred)
             else:
                 pred_dict = pred
-            
+
             # Calculate accuracy for this sample
             n_correct = 0
             n_missing = 0
             n_tracked = len(ref)
-            
+
             sample_detail = {
                 'reference': ref,
                 'prediction': pred_dict,
                 'per_key_results': {}
             }
-            
+
             for key, true_value in ref.items():
                 if key in pred_dict:
                     # Normalize values for comparison
                     pred_value = str(pred_dict[key]).strip().lower()
                     true_value_norm = str(true_value).strip().lower()
-                    
+
                     is_correct = pred_value == true_value_norm
                     if is_correct:
                         n_correct += 1
-                    
+
                     sample_detail['per_key_results'][key] = {
                         'predicted': pred_dict[key],
                         'true': true_value,
@@ -338,21 +351,21 @@ class PILLMEvaluator(BaseEvaluator):
                         'true': true_value,
                         'correct': False
                     }
-            
+
             accuracy = n_correct / n_tracked if n_tracked > 0 else 0
             sample_detail['accuracy'] = accuracy
             sample_detail['n_correct'] = n_correct
             sample_detail['n_missing'] = n_missing
             sample_detail['n_tracked'] = n_tracked
-            
+
             details.append(sample_detail)
             total_correct += n_correct
             total_keys += n_tracked
             total_missing += n_missing
-        
+
         overall_accuracy = total_correct / total_keys if total_keys > 0 else 0
         missing_rate = total_missing / total_keys if total_keys > 0 else 0
-        
+
         return {
             'accuracy': overall_accuracy * 100,  # Convert to percentage
             'missing_rate': missing_rate * 100,
