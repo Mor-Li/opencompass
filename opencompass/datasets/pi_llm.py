@@ -51,9 +51,17 @@ class PILLMDataset(BaseDataset):
         random.seed(seed)
         
         # Load source dictionary
-        source_dict_path = get_data_path(source_dict_path)
-        with open(source_dict_path, 'r') as f:
-            source_dict = json.load(f)
+        if source_dict_path and source_dict_path != '':
+            try:
+                source_dict_path = get_data_path(source_dict_path)
+                with open(source_dict_path, 'r') as f:
+                    source_dict = json.load(f)
+            except:
+                # Fall back to creating a default source dictionary
+                source_dict = {f"key{i}": f"key{i}" for i in range(1, 201)}
+        else:
+            # Create a default source dictionary
+            source_dict = {f"key{i}": f"key{i}" for i in range(1, 201)}
         
         # Generate test samples
         samples = []
