@@ -31,7 +31,7 @@ models = [
         path='kimi-k2',
         key='ENV',  # Will get from $OPENAI_API_KEY
         # openai_api_base will use default which reads from $OPENAI_BASE_URL
-        max_out_len=100,
+        max_out_len=16384,
         batch_size=1,
         run_cfg=dict(num_gpus=0),
     )
